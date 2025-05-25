@@ -1,0 +1,43 @@
+#+TITLE: LiquidNeko架构
+
+* 架构图
+#+BEGIN_SRC plantuml :file liquidneko_strcut.png
+(Launcher Neko) -> (Core Neko)
+(Core Neko) --> (Neko1)
+(Core Neko) --> (Neko2)
+(Neko1) --> (Compositor Neko):发出通信
+(Neko2) <-- (Compositor Neko):接收通信
+#+END_SRC
+
+#+RESULTS:
+[[file:liquidneko_strcut.png]]
+
+* 架构思路
+** Neko
+*** 定义
+作为LiquidNeko架构中最基本的构成单元，代表一个具有独立能力、生命周期与接口声明的实体。
+一个 Neko 可以等价于传统意义上的程序、模块、服务节点，甚至是一个封装外部程序的适配器。
+Neko不依赖中央注册系统，具有自声明、自组织的能力。它可以是本地的、远程的、静态的或临时的。
+不同Neko可以有不同分工，但所有Neko都遵循一个统一的标准通信。
+*** 结构
+一个Neko，至少应当拥有下面的实现：
+1. 传递上下文的统一通信接口。
+2. 供其它Neko调用的程序接口。
+3. 存储上下文的字典。
+4. 对其它Neko的依赖的声明。
+
+** 启动猫（Launcher Neko）
+*** 定义
+启动器是负责引导整个 LiquidNeko 系统运行的入口 Neko。
+它是系统中第一个被激活的Neko，负责初始化环境、加载调度器、注册模块或进入运行态。
+
+启动器本身并不限定形式或层级，它可以是：
+- 一个 Linux 用户空间程序；
+- 一个桌面环境中的自动启动模块；
+- 一个嵌入式设备的初始化脚本；
+- 甚至是操作系统内核或 BIOS 的入口点。
+
+** 协调猫(Compositor Neko)
+*** 定义
+带有协调功能的猫，协调猫是多个不同的猫之间的上下文调度与聚合器。
+协调猫包括但不限于内核猫、总线猫、调度猫等。
