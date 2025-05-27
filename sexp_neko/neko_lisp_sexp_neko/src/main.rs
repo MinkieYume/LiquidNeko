@@ -1,25 +1,31 @@
 #![allow(non_snake_case)]
+use std::io;
 
 fn main() {
-    rep()
+    loop{
+	let mut input = String::new();
+	print!(">>> ");
+	let mut s = io::stdin().read_line(&mut input).unwrap();
+	s = rep(s);
+	println!("{}",&s);
+    }
 }
 
-fn READ(s:&str) -> &str {
+fn READ(mut s:&str) -> &str {
     return s
 }
 
-fn EVAL(s:&str) -> &str {
+fn EVAL(mut s:&str) -> &str {
     return s
 }
 
-fn PRINT(s:&str) -> &str {
+fn PRINT(mut s:&str) -> &str {
     return s
 }
 
-fn rep() {
-    let mut s = "hello world";
+fn rep(mut s:&str) -> &str {
     s = READ(s);
     s = EVAL(s);
     s = PRINT(s);
-    println!("{}",&s);
+    return s
 }
