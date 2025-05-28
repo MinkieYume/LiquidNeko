@@ -1,14 +1,20 @@
 #![allow(non_snake_case)]
-use std::io;
+mod reader;
+mod printer;
+use std::io::{self, Write};
 
 fn main() {
-    loop{
+    let s = "(+ 123 456)";
+    reader::read_str(&s);
+/*    loop{
 	let mut input = String::new();
 	print!(">>> ");
-	let mut s = io::stdin().read_line(&mut input).unwrap();
-	s = rep(s);
+	io::stdout().flush().unwrap();
+	io::stdin().read_line(&mut input).unwrap();
+	let s = rep(&input);
 	println!("{}",&s);
-    }
+	io::stdout().flush().unwrap();
+    }*/
 }
 
 fn READ(mut s:&str) -> &str {
