@@ -1,32 +1,8 @@
-// heapless Vec：适用于 no_std 裸机
-#[cfg(feature = "use_heapless")]
-pub mod types {
-    use heapless::{Vec, String as Str};
-    pub type String = Str<64>;
-    pub type StrVec = Vec<String, 64>;
-}
-
-// alloc Vec：适用于有 allocator 的 no_std
-#[cfg(all(feature = "use_alloc", not(feature = "use_std")))]
-pub mod types {
-    extern crate alloc;
-    use alloc::{vec::Vec, string::String as Str};
-    pub type String = Str;
-    pub type StrVec = Vec<String>;
-}
-
-// std Vec：适用于标准系统
-#[cfg(feature = "use_std")]
-pub mod types {
-    use std::{vec::Vec, string::String as Str};
-    pub type String = Str;
-    pub type StrVec = Vec<String>;
-}
-
-use types::{String,StrVec};
+extern crate alloc;
+use alloc::{vec::Vec, string::String};
 
 pub struct Reader {
-    tokens: StrVec,
+    tokens: Vec<String>,
     position: usize,
 }
 
@@ -104,17 +80,21 @@ pub fn read_str(s:&str) {
 }
 
 pub fn tokenize(s:&str) {
-    let mut last_tokens:StrVec = Vec::new();
-    let mut tokens:StrVec = Vec::new();
+    let mut last_tokens:Vec<String> = Vec::new();
+    let mut tokens:Vec<String> = Vec::new();
     let mut token:String = String::new();
-    let mut quoting = false;
-    let mut char_pos = 0;
 
-    //循环1,处理空格、逗号与引号
-    for c in s.chars(){
-        if is_char_quote(&c) {
+    //循环1,处理空格、逗号、引号、分号与换行
+    let mut last_char = ' ';
+    let mut quoting = false;
+    let mut commenting = false;
+    for c in s.chars() {
+        if is_char_quote(c) {
+            //处理引号
             token.push(c);  // quote 本身加进去
-            quoting = !quoting;
+            if !is_char_change_mean(last_char){
+                quoting = !quoting;
+            }
 
             // 如果刚结束字符串，提交 token
             if !quoting {
@@ -122,12 +102,22 @@ pub fn tokenize(s:&str) {
                 token.clear();
             }
             continue;
-        }
-
-        if quoting {
-            // 在引号内，照单全收
+        } else if is_char_comment_symbol(c) && !quoting {
+            //处理分号
+            tokens.push(token.clone());
+            token.clear();
             token.push(c);
-        } else if c == ' ' || c == ',' {
+            commenting = true;
+            continue;
+        } else if is_char_change_line(c) && !quoting {
+            //处理换行符
+            commenting = false;   
+        }
+        
+        if quoting || commenting {
+            // 在引号或注释时，照单全收
+            token.push(c);
+        } else if is_char_trim_symbol(c) {
             // 分隔符，提交 token（如果非空）
             if !token.is_empty() {
                 tokens.push(token.clone());
@@ -137,8 +127,12 @@ pub fn tokenize(s:&str) {
             // 普通字符
             token.push(c);
         }
-        println!("{}",c)
-        
+        println!("{}",c);
+        if is_char_change_mean(c) && is_char_change_mean(last_char){
+            last_char = ' ';
+        } else{
+            last_char = c;
+        }
     }
     // 处理最后一个 token
     if !token.is_empty() {
@@ -148,16 +142,19 @@ pub fn tokenize(s:&str) {
      // 准备下一组匹配循环
     last_tokens = tokens.clone();
     tokens.clear();
+    last_char = ' ';
 
     //循环2:分离宏字符与普通字符（特殊的宏字符与普通字符区分）
     for last_token in last_tokens {
         let mut pushed = false;
         for c in last_token.chars() {
-            if is_char_quote(&c) {
+            if is_char_quote(c) || is_char_comment_symbol(c) {
+                //判断是否是引号或注释符号，是的话忽略本token
                 tokens.push(last_token.clone());
                 pushed = true;
                 break;
-            }else if is_char_sexp_char(&c) {
+            } else if is_char_sexp_char(c) {
+                //匹配S表达式符号（括号）并单独分开
                 if !token.is_empty() {
                     tokens.push(token.clone());
                     token.clear();
@@ -165,9 +162,18 @@ pub fn tokenize(s:&str) {
                 token.push(c);
                 tokens.push(token.clone());
                 token.clear();
-            }else if is_char_marco_symbol(&c) {
+            } else if is_char_marco_symbol(c) {
+                //匹配宏符号（其它ASCII标准的特殊符号）
+                token.push(c);
+            } else {
+                //匹配普通字符
+                if is_char_marco_symbol(last_char) {
+                    tokens.push(token.clone());
+                    token.clear();
+                }
                 token.push(c);
             }
+            last_char = c;
         }
         if !pushed {
             if !token.is_empty() {
@@ -178,42 +184,72 @@ pub fn tokenize(s:&str) {
     }
     
     println!("{:?}", tokens);
-    
-/*    for c in s.chars() {
-        // 逐个处理每个字符，传统的办法行不通，也许要递归。
-        if c != ' ' && c != ',' {
-            token.push(c);
-        }else{
-            tokens.push(token.clone());
-            token = String::new();
-        }*/
-/*        if is_char_quote(&c) {
-            if quoting {
-                tokens.push(token.clone());
-                token = String::new();
-            }
-            quoting = !quoting;
-        }
-        if token == "~@"{
-            tokens.push(token.clone());
-            token = String::new();
-        }
-        if is_char_sexp_char(&c) {
-            tokens.push(token.clone());
-            token = String::new();
-        }
-        if c == ' ' || c == ','{
-            */
-    }
 
-fn is_char_sexp_char(c:&char) -> bool {
+     // 准备下一组匹配循环
+    last_tokens = tokens.clone();
+    tokens.clear();
+    last_char = ' ';
+    // 循环3:区分单字符与宏字符组合
+    for last_token in last_tokens {
+        if is_string_marco_symbol(&last_token) {
+            tokens.push(last_token.clone());
+        } else {
+            let mut pushed = false;
+            for c in last_token.chars(){
+                if is_char_quote(c) || is_char_comment_symbol(c) {
+                    //判断是否是引号或注释符号，是的话忽略本token
+                    tokens.push(last_token.clone());
+                    pushed = true;
+                    break;
+                } else if is_char_marco_symbol(c) {
+                    token.push(c);
+                    tokens.push(token.clone());
+                    token.clear();
+                    pushed = true; //前面已经处理过字母了，所以只要一个字符是符号，后面也必定是
+                }
+            }
+            if !pushed && !last_token.is_empty() {
+                tokens.push(last_token.clone());
+                token.clear();
+            }
+        }
+        
+    }
+    
+    println!("{:?}", tokens);
+}
+
+fn is_char_sexp_char(c:char) -> bool {
     match c{
         '(' | ')' => true,
         _ => false,
     }
 }
 
-fn is_char_marco_symbol(c:&char) -> bool{
+fn is_char_change_mean(c:char) -> bool {
+    if c == '\\' {
+        true
+    }else{
+        false
+    }
+}
+
+fn is_char_comment_symbol(c:char) -> bool {
+    if c == ';' {
+        true
+    }else{
+        false
+    }
+}
+
+fn is_char_change_line(c:char) -> bool {
+    match c {
+        '\n' => true,
+        _ => false,
+    }
+}
+
+fn is_char_marco_symbol(c:char) -> bool{
     if c.is_ascii_punctuation() {
         true
     }else {
@@ -221,15 +257,29 @@ fn is_char_marco_symbol(c:&char) -> bool{
     }
 }
 
-fn is_char_special_char(c:&char) -> bool{
+fn is_string_marco_symbol(s:&String) -> bool {
+    match s.as_str() {
+        "~@" | "@~" => true,
+        _ => false,
+    }
+}
+
+fn is_char_trim_symbol(c:char) -> bool {
+    match c {
+        '\n' | ' ' | ',' => true,
+        _ => false,
+    }
+}
+
+fn is_char_special_char(c:char) -> bool{
     match c {
         '(' | ')' | '{' | '}' | '\'' | '`' | '~' | '@' | '^' => true,
         _ => false,
     }
 }
 
-fn is_char_quote(c:&char) -> bool{
-    if *c == '"' {
+fn is_char_quote(c:char) -> bool{
+    if c == '"' {
         true
     }else{
         false

@@ -4,7 +4,7 @@ mod printer;
 use std::io::{self, Write};
 
 fn main() {
-    let s = "(+ \"~@123 $^n 456\" ~@aadx)";
+    let s = "(+ \"~@123 $^n \\\"456\\\\\" ~@aadx ^$xxdd) ;hello_word";
     reader::read_str(&s);
 /*    loop{
 	let mut input = String::new();
