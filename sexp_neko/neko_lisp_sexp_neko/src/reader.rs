@@ -1,5 +1,7 @@
 extern crate alloc;
 use alloc::{vec::Vec, string::String};
+use crate::types::NekoType;
+use crate::types::NekoType::*;
 
 pub struct Reader {
     tokens: Vec<String>,
@@ -25,61 +27,15 @@ impl Reader {
     }
 }
 
-struct ReaderChars{
-    s_exp_begin_char:char,
-    s_exp_end_char:char,
-    quote_begin_char:char,
-    quote_end_char:char,
+pub fn read_str(s:&str) -> Reader{
+    let mut reader = Reader {
+        tokens: tokenize(s),
+        position: 0,
+    };
+    return reader;
 }
 
-impl ReaderChars{
-    pub fn init(&mut self) {
-        self.s_exp_begin_char = '(';
-        self.s_exp_end_char = ')';
-        self.quote_begin_char = '"';
-        self.quote_end_char = '"';
-    }
-    
-    // Getter methods
-    pub fn get_s_exp_begin_char(&self) -> char {
-        self.s_exp_begin_char
-    }
-
-    pub fn get_s_exp_end_char(&self) -> char {
-        self.s_exp_end_char
-    }
-
-    pub fn get_quote_begin_char(&self) -> char {
-        self.quote_begin_char
-    }
-
-    pub fn get_quote_end_char(&self) -> char {
-        self.quote_end_char
-    }
-
-    // Setter methods
-    pub fn set_s_exp_begin_char(&mut self, c: char) {
-        self.s_exp_begin_char = c;
-    }
-
-    pub fn set_s_exp_end_char(&mut self, c: char) {
-        self.s_exp_end_char = c;
-    }
-
-    pub fn set_quote_begin_char(&mut self, c: char) {
-        self.quote_begin_char = c;
-    }
-
-    pub fn set_quote_end_char(&mut self, c: char) {
-        self.quote_end_char = c;
-    } 
-}
-
-pub fn read_str(s:&str) {
-    tokenize(s);
-}
-
-pub fn tokenize(s:&str) {
+pub fn tokenize(s:&str) -> Vec<String>{
     let mut last_tokens:Vec<String> = Vec::new();
     let mut tokens:Vec<String> = Vec::new();
     let mut token:String = String::new();
@@ -127,7 +83,7 @@ pub fn tokenize(s:&str) {
             // 普通字符
             token.push(c);
         }
-        println!("{}",c);
+        //println!("{}",c);
         if is_char_change_mean(c) && is_char_change_mean(last_char){
             last_char = ' ';
         } else{
@@ -183,7 +139,7 @@ pub fn tokenize(s:&str) {
         }
     }
     
-    println!("{:?}", tokens);
+    //println!("{:?}", tokens);
 
      // 准备下一组匹配循环
     last_tokens = tokens.clone();
@@ -217,12 +173,22 @@ pub fn tokenize(s:&str) {
     }
     
     println!("{:?}", tokens);
+    return tokens;
 }
 
 fn is_char_sexp_char(c:char) -> bool {
     match c{
         '(' | ')' => true,
         _ => false,
+    }
+}
+
+fn if_char_sexp_with_direction(c:char) -> Option<bool> {
+    //如果char是sexp符号，则获取方向的判定。
+    match c {
+        '(' => Some(true),
+        ')' => Some(true),
+        _ => None
     }
 }
 
@@ -286,14 +252,43 @@ fn is_char_quote(c:char) -> bool{
     }
 }
 
-pub fn read_form() {
-//解析Reader的第一个token，并判断是否处理接下来的内容。
+pub fn read_form(r:&mut Reader) -> NekoType {
+    //解析Sexp表达式形式
+    if let Some(c) = r.peek().and_then(|token| token.chars().next()) {
+        if let Some(true) = if_char_sexp_with_direction(c) {
+            return read_list(r);
+        } else {
+            return read_atom(r);
+        }
+    } else {
+        return NekoNil;
+    }
 }
 
-pub fn read_list() {
-
+pub fn read_list(r:&mut Reader) -> NekoType {
+    //解析Sexp表达式本身
+    let mut list:Vec<NekoType> = Vec::new();
+    //反复读入元素：
+    while let Some(token) = r.next() {
+        let c = token.chars().next().unwrap();
+        if let Some(false) = if_char_sexp_with_direction(c) {
+            return NekoList(list);
+        }
+        list.push(read_form(r));
+    }
+    return NekoErr("Sexp表达式没有结尾".to_string());
 }
 
-pub fn read_atom() {
+pub fn read_atom(r:&mut Reader) -> NekoType {
+    //解析Sexp表达式内容
+    let s = r.peek().unwrap();
+    if let Some(i) = parse_integer(s.as_str()) {
+        NekoInt(i)
+    } else {
+        NekoSymbol(s)
+    }
+}
 
+fn parse_integer(s: &str) -> Option<i64> {
+    s.parse::<i64>().ok()
 }

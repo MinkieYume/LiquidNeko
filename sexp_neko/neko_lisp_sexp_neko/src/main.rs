@@ -1,12 +1,13 @@
 #![allow(non_snake_case)]
 mod reader;
 mod printer;
+mod types;
+use crate::types::NekoType;
+use crate::types::NekoType::*;
 use std::io::{self, Write};
 
 fn main() {
-    let s = "(+ \"~@123 $^n \\\"456\\\\\" ~@aadx ^$xxdd) ;hello_word";
-    reader::read_str(&s);
-/*    loop{
+    loop{
 	let mut input = String::new();
 	print!(">>> ");
 	io::stdout().flush().unwrap();
@@ -14,24 +15,24 @@ fn main() {
 	let s = rep(&input);
 	println!("{}",&s);
 	io::stdout().flush().unwrap();
-    }*/
+    }
 }
 
-fn READ(mut s:&str) -> &str {
-    return s
+fn READ(mut s:&str) -> NekoType {
+    let mut r = reader::read_str(s);
+    return reader::read_form(&mut r);
 }
 
-fn EVAL(mut s:&str) -> &str {
-    return s
+fn EVAL(mut n:NekoType) -> NekoType {
+    return n
 }
 
-fn PRINT(mut s:&str) -> &str {
-    return s
+fn PRINT(n:NekoType) -> String {
+    return printer::pr_str(n)
 }
 
-fn rep(mut s:&str) -> &str {
-    s = READ(s);
-    s = EVAL(s);
-    s = PRINT(s);
-    return s
+fn rep(mut s:&str) -> String {
+   let mut n = READ(s);
+    n = EVAL(n);
+    return PRINT(n);
 }
