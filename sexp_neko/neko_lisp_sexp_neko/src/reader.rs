@@ -343,14 +343,27 @@ fn parse_symbol(s: &str) -> Option<String> {
 
 fn parse_string(s: &str) -> Option<String> {
     if let Some(c) = s.chars().next() {
-        //第一个字符是不是引号
+        //第一个字符是引号
         if is_char_quote(c) {
-            let mut token = String::new();
-            //遍历字符组，取出所有字符。
-            for c in s.chars() {
-                token.push(c);
+            let mut t =  String::new();
+            let mut last_char = ' ';
+            for tc in s.chars() {
+                if is_char_change_mean(last_char) {
+                    if is_char_change_mean(tc) {
+                        t.push('\\');
+                    } else if tc == 'n' {
+                        t.push('\n');
+                    } else if is_char_quote(tc) {
+                        t.push('"');
+                    }
+                } else if !is_char_change_mean(tc) {
+                    t.push(tc);
+                }
+                last_char = tc
             }
-            return Some(token);
+            t.remove(0);
+            t.pop();
+            return Some(t);
         }
     }
     return None;
