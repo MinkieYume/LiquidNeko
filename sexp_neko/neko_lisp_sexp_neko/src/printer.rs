@@ -1,19 +1,25 @@
+use alloc::{vec::Vec, string::String, boxed::Box};
+use core::fmt::Write;
 use crate::types::NekoType;
 use crate::types::NekoType::*;
 
 pub fn pr_str(neko:NekoType) -> String {
+    let mut output = String::new();
     match neko {
-        NekoInt(n) => n.to_string(),
-        NekoSymbol(s) => s,
-        NekoNil => "nil".to_string(),
-        NekoErr(e) => format!("Error: {}", e),
+        NekoInt(n) => {output = n.to_string();},
+        NekoFloat(f) => {output = f.to_string();},
+        NekoSymbol(s) => {output = s;},
+        NekoString(s) => {output = s;},
+        NekoNil => {output = "nil".to_string();},
+        NekoErr(e) => {write!(&mut output,"Error: {}", e);},
         NekoList(v) => {
             let mut sv:Vec<String> = Vec::new();
             for n in v {
                 sv.push(pr_str(n));
             }
-            sv.join(" ")
+            write!(&mut output,"({})", sv.join(" "));
         },
-        _ => "未实现".to_string()
+        _ => {output = "未实现".to_string();}
     }
+    return output;
 }

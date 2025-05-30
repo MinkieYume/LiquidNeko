@@ -1,5 +1,5 @@
-extern crate alloc;
-use alloc::{vec::Vec, string::String};
+use alloc::{vec::Vec, string::String, boxed::Box};
+use core::fmt::Write;
 use crate::types::NekoType;
 use crate::types::NekoType::*;
 
@@ -18,6 +18,7 @@ impl Reader {
     }
 
     pub fn next(&mut self) -> Option<String> {
+        //println!("{}",self.position);
         if let Some(token) = self.peek() {
             self.position += 1;
             Some(token)
@@ -35,7 +36,7 @@ pub fn read_str(s:&str) -> Reader{
     return reader;
 }
 
-pub fn tokenize(s:&str) -> Vec<String>{
+pub fn tokenize(s:&str) -> Vec<String> {
     let mut last_tokens:Vec<String> = Vec::new();
     let mut tokens:Vec<String> = Vec::new();
     let mut token:String = String::new();
@@ -47,6 +48,10 @@ pub fn tokenize(s:&str) -> Vec<String>{
     for c in s.chars() {
         if is_char_quote(c) {
             //处理引号
+            if !quoting && !token.is_empty() {
+                tokens.push(token.clone());
+                token.clear();
+            }
             token.push(c);  // quote 本身加进去
             if !is_char_change_mean(last_char){
                 quoting = !quoting;
@@ -95,6 +100,8 @@ pub fn tokenize(s:&str) -> Vec<String>{
         tokens.push(token.clone());
         token.clear();
     }
+
+    //println!("{:?}", tokens);
      // 准备下一组匹配循环
     last_tokens = tokens.clone();
     tokens.clear();
@@ -172,7 +179,7 @@ pub fn tokenize(s:&str) -> Vec<String>{
         
     }
     
-    println!("{:?}", tokens);
+    //println!("{:?}", tokens);
     return tokens;
 }
 
@@ -187,7 +194,7 @@ fn if_char_sexp_with_direction(c:char) -> Option<bool> {
     //如果char是sexp符号，则获取方向的判定。
     match c {
         '(' => Some(true),
-        ')' => Some(true),
+        ')' => Some(false),
         _ => None
     }
 }
@@ -268,25 +275,89 @@ pub fn read_form(r:&mut Reader) -> NekoType {
 pub fn read_list(r:&mut Reader) -> NekoType {
     //解析Sexp表达式本身
     let mut list:Vec<NekoType> = Vec::new();
+    let mut last_s:String = " ".to_string();
     //反复读入元素：
-    while let Some(token) = r.next() {
-        let c = token.chars().next().unwrap();
-        if let Some(false) = if_char_sexp_with_direction(c) {
-            return NekoList(list);
+    while let Some(_) = r.next() {
+        if let Some(s) = r.peek() {
+            last_s = s.clone();
+            let c = s.chars().next().unwrap();
+            //println!("{:?}",r.peek());
+            if let Some(false) = if_char_sexp_with_direction(c) {
+                return NekoList(list);
+            }
+            list.push(read_form(r));
+        } else {
+            //错误判定条件与判定循环
+            let mut err = String::new();
+            let mut quoting = false;
+            let mut last_char = ' ';
+            for c in last_s.chars() {
+                if is_char_quote(c) && !is_char_change_mean(last_char) {
+                    quoting = !quoting
+                } else if is_char_change_mean(c) && is_char_change_mean (last_char) {
+                    last_char = ' ';
+                } else {
+                    last_char = c;
+                }
+            }
+
+            if quoting {
+                write!(&mut err,"引号越界：{}",last_s).unwrap();
+                return NekoErr(err);
+            }
+            
+            return NekoErr("解析失败，未知错误".to_string());
         }
-        list.push(read_form(r));
     }
     return NekoErr("Sexp表达式没有结尾".to_string());
 }
 
 pub fn read_atom(r:&mut Reader) -> NekoType {
     //解析Sexp表达式内容
-    let s = r.peek().unwrap();
-    if let Some(i) = parse_integer(s.as_str()) {
-        NekoInt(i)
+    if let Some(s) = r.peek() {
+        let result = try_parse(&s);
+        return result.unwrap_or(NekoSymbol(s));
     } else {
-        NekoSymbol(s)
+        return NekoErr("解析失败，未知错误".to_string())
     }
+}
+
+fn try_parse(s:&str) -> Option<NekoType>{
+    let parsers: Vec<Box<dyn Fn(&str) -> Option<NekoType>>> = vec![
+        Box::new(|s| parse_integer(s).map(NekoInt)),
+        Box::new(|s| parse_float(s).map(NekoFloat)),
+        Box::new(|s| parse_string(s).map(NekoString)),
+    ];
+    
+    for parser in parsers {
+        if let Some(val) = parser(s) {
+            return Some(val);
+        }
+    }
+    None
+}
+
+fn parse_symbol(s: &str) -> Option<String> {
+    None
+}
+
+fn parse_string(s: &str) -> Option<String> {
+    if let Some(c) = s.chars().next() {
+        //第一个字符是不是引号
+        if is_char_quote(c) {
+            let mut token = String::new();
+            //遍历字符组，取出所有字符。
+            for c in s.chars() {
+                token.push(c);
+            }
+            return Some(token);
+        }
+    }
+    return None;
+}
+
+fn parse_float(s: &str) -> Option<f64> {
+    s.parse::<f64>().ok()
 }
 
 fn parse_integer(s: &str) -> Option<i64> {

@@ -1,4 +1,5 @@
 #![allow(non_snake_case)]
+extern crate alloc;
 mod reader;
 mod printer;
 mod types;
@@ -11,7 +12,11 @@ fn main() {
 	let mut input = String::new();
 	print!(">>> ");
 	io::stdout().flush().unwrap();
-	io::stdin().read_line(&mut input).unwrap();
+	let bytes_read = io::stdin().read_line(&mut input).unwrap();
+        if bytes_read == 0{
+            println!("\nByeNyan");
+            break;
+        }
 	let s = rep(&input);
 	println!("{}",&s);
 	io::stdout().flush().unwrap();
