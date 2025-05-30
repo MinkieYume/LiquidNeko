@@ -1,38 +1,44 @@
 use alloc::{vec::Vec, string::String, boxed::Box};
 use SymbolTypes::*;
 
+use crate::reader::Reader;
+
 #[derive(Debug, Clone, PartialEq)]
 enum SymbolTypes {
     SymbolChar(char),
-    SymbolStr(str),
+    SymbolStr(String),
     SymbolCharList(Vec<char>),
-    SymbolStrList(Vec<str>),
+    SymbolStrList(Vec<String>),
     SymbolSpecialChars,
 }
 
-struct Symbols {
+pub struct Symbols {
     s_exp_begin:SymbolTypes,
     s_exp_end:SymbolTypes,
     quote_symbol:SymbolTypes,
     change_mean:SymbolTypes,
-    change_line:SymbolTypes,
     comment_begin:SymbolTypes,
     comment_end:SymbolTypes,
     marco_symbols:SymbolTypes,
     marco_str_symbols:SymbolTypes,
+    split_symbols:SymbolTypes,
     special_symbols:SymbolTypes,
 }
 
 impl Symbols {
-    pub fn init(&mut self) {
-        self.s_exp_begin = SymbolChar('(');
-        self.s_exp_end = SymbolChar(')');
-        self.quote_symbol = SymbolChar('"');
-        self.change_mean = SymbolChar('\\');
-        self.comment_begin = SymbolChar(';');
-        self.comment_end = SymbolChar('\n');
-        self.marco_str_symbols = SymbolStrList(vec!["~@","@~"]);
-        self.special_symbols = SymbolSpecialChars;
+    pub fn new() -> Symbols {
+        Symbols {
+            s_exp_begin : SymbolChar('('),
+            s_exp_end : SymbolChar(')'),
+            quote_symbol : SymbolChar('"'),
+            change_mean : SymbolChar('\\'),
+            comment_begin : SymbolChar(';'),
+            comment_end : SymbolChar('\n'),
+            split_symbols : SymbolCharList(vec![' ',',','\n']),
+            marco_symbols : SymbolCharList(vec!['\'','`','~','@','^']),
+            marco_str_symbols : SymbolStrList(vec!["~@".to_string(),"@~".to_string()]),
+            special_symbols : SymbolSpecialChars,
+        }
     }
 
     fn sexp_direction(&mut self,c:char) -> Option<bool> {
@@ -46,8 +52,11 @@ impl Symbols {
         }
     }
 
-    pub fn pair_str() -> bool {
-        
+    pub fn pair_str(&mut self,s:&str,y:&str) -> bool {
+        match y {
+            "marco_str" => str_pair(s,self.marco_str_symbols.clone()),
+            _ => false,
+        }
     }
     
     pub fn pair_char(&mut self,c:char,s:&str) -> bool {
@@ -59,8 +68,24 @@ impl Symbols {
             "comment_begin" => char_pair(c,self.comment_begin.clone()),
             "comment_end" => char_pair(c,self.comment_end.clone()),
             "special" => char_pair(c,self.special_symbols.clone()),
+            "marco_symbols" => char_pair(c,self.marco_symbols.clone()),
             _ => false,
         }
+    }
+}
+
+fn str_pair(s:&str,y:SymbolTypes) -> bool {
+    match y {
+        SymbolStr(p) => s == p.as_str(),
+        SymbolStrList(pl) => {
+            for p in pl{
+                if s == p.as_str() {
+                    return true;
+                }
+            }
+            return false;
+        },
+        _ => false,
     }
 }
 

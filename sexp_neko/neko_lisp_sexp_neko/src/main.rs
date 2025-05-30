@@ -4,11 +4,13 @@ mod reader;
 mod printer;
 mod types;
 mod symbols;
+use std::io::{self, Write};
 use crate::types::NekoType;
 use crate::types::NekoType::*;
-use std::io::{self, Write};
+use crate::symbols::Symbols;
 
 fn main() {
+    let mut symbols = Symbols::new();
     loop{
 	let mut input = String::new();
 	print!(">>> ");
@@ -18,27 +20,27 @@ fn main() {
             println!("\nByeNyan");
             break;
         }
-	let s = rep(&input);
+	let s = rep(&input,&mut symbols);
 	println!("{}",&s);
 	io::stdout().flush().unwrap();
     }
 }
 
-fn READ(mut s:&str) -> NekoType {
-    let mut r = reader::read_str(s);
-    return reader::read_form(&mut r);
+fn READ(mut s:&str,symb:&mut Symbols) -> NekoType {
+    let mut r = reader::read_str(s,symb);
+    return reader::read_form(&mut r,symb);
 }
 
-fn EVAL(mut n:NekoType) -> NekoType {
+fn EVAL(mut n:NekoType,symb:&mut Symbols) -> NekoType {
     return n
 }
 
-fn PRINT(n:NekoType) -> String {
+fn PRINT(n:NekoType,symb:&mut Symbols) -> String {
     return printer::pr_str(n)
 }
 
-fn rep(mut s:&str) -> String {
-   let mut n = READ(s);
-    n = EVAL(n);
-    return PRINT(n);
+fn rep(mut s:&str,symb:&mut Symbols) -> String {
+   let mut n = READ(s,symb);
+    n = EVAL(n,symb);
+    return PRINT(n,symb);
 }

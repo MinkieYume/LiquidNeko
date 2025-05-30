@@ -2,6 +2,7 @@ use alloc::{vec::Vec, string::String, boxed::Box};
 use core::fmt::Write;
 use crate::types::NekoType;
 use crate::types::NekoType::*;
+use crate::symbols::Symbols;
 
 pub struct Reader {
     tokens: Vec<String>,
@@ -28,15 +29,15 @@ impl Reader {
     }
 }
 
-pub fn read_str(s:&str) -> Reader{
+pub fn read_str(s:&str,symb:&mut Symbols) -> Reader{
     let mut reader = Reader {
-        tokens: tokenize(s),
+        tokens: tokenize(s,symb),
         position: 0,
     };
     return reader;
 }
 
-pub fn tokenize(s:&str) -> Vec<String> {
+pub fn tokenize(s:&str,symb:&mut Symbols) -> Vec<String> {
     let mut last_tokens:Vec<String> = Vec::new();
     let mut tokens:Vec<String> = Vec::new();
     let mut token:String = String::new();
@@ -259,20 +260,20 @@ fn is_char_quote(c:char) -> bool{
     }
 }
 
-pub fn read_form(r:&mut Reader) -> NekoType {
+pub fn read_form(r:&mut Reader,symb:&mut Symbols) -> NekoType {
     //解析Sexp表达式形式
     if let Some(c) = r.peek().and_then(|token| token.chars().next()) {
         if let Some(true) = if_char_sexp_with_direction(c) {
-            return read_list(r);
+            return read_list(r,symb);
         } else {
-            return read_atom(r);
+            return read_atom(r,symb);
         }
     } else {
         return NekoNil;
     }
 }
 
-pub fn read_list(r:&mut Reader) -> NekoType {
+pub fn read_list(r:&mut Reader,symb:&mut Symbols) -> NekoType {
     //解析Sexp表达式本身
     let mut list:Vec<NekoType> = Vec::new();
     let mut last_s:String = " ".to_string();
@@ -285,7 +286,7 @@ pub fn read_list(r:&mut Reader) -> NekoType {
             if let Some(false) = if_char_sexp_with_direction(c) {
                 return NekoList(list);
             }
-            list.push(read_form(r));
+            list.push(read_form(r,symb));
         } else {
             //错误判定条件与判定循环
             let mut err = String::new();
@@ -312,7 +313,7 @@ pub fn read_list(r:&mut Reader) -> NekoType {
     return NekoErr("Sexp表达式没有结尾".to_string());
 }
 
-pub fn read_atom(r:&mut Reader) -> NekoType {
+pub fn read_atom(r:&mut Reader,symb:&mut Symbols) -> NekoType {
     //解析Sexp表达式内容
     if let Some(s) = r.peek() {
         let result = try_parse(&s);
