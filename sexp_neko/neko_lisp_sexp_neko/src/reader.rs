@@ -244,7 +244,7 @@ fn is_char_trim_symbol(c:char) -> bool {
     }
 }
 
-fn is_char_special_char(c:char) -> bool{
+fn is_char_special_char(c:char) -> bool {
     match c {
         '(' | ')' | '{' | '}' | '\'' | '`' | '~' | '@' | '^' => true,
         _ => false,

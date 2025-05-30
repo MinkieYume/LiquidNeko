@@ -3,6 +3,7 @@ extern crate alloc;
 mod reader;
 mod printer;
 mod types;
+mod symbols;
 use crate::types::NekoType;
 use crate::types::NekoType::*;
 use std::io::{self, Write};
