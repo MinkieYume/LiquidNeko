@@ -131,7 +131,7 @@ pub fn tokenize(s:&str,symb:&mut Symbols) -> Vec<String> {
                 token.push(c);
             } else {
                 //匹配普通字符
-                if symb.pair_char(last_char,"marco_symbols") {
+                if symb.pair_char(last_char,"special") {
                     tokens.push(token.clone());
                     token.clear();
                 }
@@ -147,7 +147,7 @@ pub fn tokenize(s:&str,symb:&mut Symbols) -> Vec<String> {
         }
     }
     
-    //println!("{:?}", tokens);
+    println!("{:?}", tokens);
 
      // 准备下一组匹配循环
     last_tokens = tokens.clone();
@@ -166,7 +166,6 @@ pub fn tokenize(s:&str,symb:&mut Symbols) -> Vec<String> {
                     pushed = true;
                     break;
                 } else if symb.pair_char(c,"special") {
-                    //BUG：输入一个匹配该符号与不匹配的组合，会直接忽略后面不匹配的字符。如!@ 输出@ :keyword 输出 :。
                     token.push(c);
                     tokens.push(token.clone());
                     token.clear();
