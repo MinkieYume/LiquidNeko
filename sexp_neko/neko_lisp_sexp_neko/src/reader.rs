@@ -103,7 +103,7 @@ pub fn tokenize(s:&str,symb:&mut Symbols) -> Vec<String> {
     }
 
     //println!("{:?}", tokens);
-     // 准备下一组匹配循环
+    // 准备下一组匹配循环
     last_tokens = tokens.clone();
     tokens.clear();
     last_char = ' ';
@@ -127,11 +127,15 @@ pub fn tokenize(s:&str,symb:&mut Symbols) -> Vec<String> {
                 tokens.push(token.clone());
                 token.clear();
             } else if symb.pair_char(c,"marco_symbols") {
-                //匹配宏符号（其它ASCII标准的特殊符号）
+                //匹配宏符号
+                if !symb.pair_char(last_char,"marco_symbols") && !token.is_empty() {
+                    tokens.push(token.clone());
+                    token.clear();
+                }
                 token.push(c);
             } else {
-                //匹配普通字符
-                if symb.pair_char(last_char,"special") {
+                //普通字符处理
+                if symb.pair_char(last_char,"marco_symbols") {
                     tokens.push(token.clone());
                     token.clear();
                 }
@@ -147,7 +151,7 @@ pub fn tokenize(s:&str,symb:&mut Symbols) -> Vec<String> {
         }
     }
     
-    println!("{:?}", tokens);
+    //println!("{:?}", tokens);
 
      // 准备下一组匹配循环
     last_tokens = tokens.clone();
@@ -159,13 +163,13 @@ pub fn tokenize(s:&str,symb:&mut Symbols) -> Vec<String> {
             tokens.push(last_token.clone());
         } else {
             let mut pushed = false;
-            for c in last_token.chars(){
+            for c in last_token.chars() {
                 if symb.pair_char(c,"quote_symbol") || symb.pair_char(c,"comment_begin") {
                     //判断是否是引号或注释符号，是的话忽略本token
                     tokens.push(last_token.clone());
                     pushed = true;
                     break;
-                } else if symb.pair_char(c,"special") {
+                } else if symb.pair_char(c,"marco_symbols") {
                     token.push(c);
                     tokens.push(token.clone());
                     token.clear();
