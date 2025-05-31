@@ -27,8 +27,11 @@ fn main() {
 }
 
 fn READ(mut s:&str,symb:&mut Symbols) -> NekoType {
-    let mut r = reader::read_str(s,symb);
-    return reader::read_form(&mut r,symb);
+    if let Some(mut r) = reader::read_str(s,symb) {
+        reader::read_form(&mut r,symb)
+    } else {
+        NekoNil
+    }
 }
 
 fn EVAL(mut n:NekoType,symb:&mut Symbols) -> NekoType {

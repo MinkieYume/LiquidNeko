@@ -23,6 +23,7 @@ pub struct Symbols {
     marco_str_symbols:SymbolTypes,
     split_symbols:SymbolTypes,
     special_symbols:SymbolTypes,
+    keyword:SymbolTypes,
 }
 
 impl Symbols {
@@ -34,6 +35,7 @@ impl Symbols {
             change_mean : SymbolChar('\\'),
             comment_begin : SymbolChar(';'),
             comment_end : SymbolChar('\n'),
+            keyword: SymbolChar(':'),
             split_symbols : SymbolCharList(vec![' ',',','\n']),
             marco_symbols : SymbolCharList(vec!['\'','`','~','@','^']),
             marco_str_symbols : SymbolStrList(vec!["~@".to_string(),"@~".to_string()]),
@@ -67,6 +69,7 @@ impl Symbols {
             "change_mean" => char_pair(c,self.change_mean.clone()),
             "comment_begin" => char_pair(c,self.comment_begin.clone()),
             "comment_end" => char_pair(c,self.comment_end.clone()),
+            "keyword" => char_pair(c,self.keyword.clone()),
             "split" => char_pair(c,self.split_symbols.clone()),
             "special" => char_pair(c,self.special_symbols.clone()),
             "marco_symbols" => char_pair(c,self.marco_symbols.clone()),

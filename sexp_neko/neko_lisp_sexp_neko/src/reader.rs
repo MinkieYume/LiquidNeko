@@ -29,14 +29,17 @@ impl Reader {
     }
 }
 
-pub fn read_str(s:&str,symb:&mut Symbols) -> Reader{
-    let mut reader = Reader {
-        tokens: tokenize(s,symb),
-        position: 0,
-    };
-    return reader;
+pub fn read_str(s:&str,symb:&mut Symbols) -> Option<Reader> {
+    let t = tokenize(s,symb);
+    if !t.is_empty() {
+        Some(Reader {
+            tokens: t,
+            position: 0,
+        })
+    } else {
+        None
+    }
 }
-
 pub fn tokenize(s:&str,symb:&mut Symbols) -> Vec<String> {
     let mut last_tokens:Vec<String> = Vec::new();
     let mut tokens:Vec<String> = Vec::new();
@@ -68,7 +71,6 @@ pub fn tokenize(s:&str,symb:&mut Symbols) -> Vec<String> {
             //处理分号
             tokens.push(token.clone());
             token.clear();
-            token.push(c);
             commenting = true;
             continue;
         } else if symb.pair_char(c,"comment_end") && !quoting {
@@ -76,8 +78,11 @@ pub fn tokenize(s:&str,symb:&mut Symbols) -> Vec<String> {
             commenting = false;   
         }
         
-        if quoting || commenting {
-            // 在引号或注释时，照单全收
+        if commenting {
+            last_char = ' ';
+            continue;
+        } else if quoting {
+            // 在引号时，照单全收
             token.push(c);
         } else if symb.pair_char(c,"split") {
             // 分隔符，提交 token（如果非空）
@@ -255,6 +260,7 @@ fn try_parse(s:&str,symb:&mut Symbols) -> Option<NekoType>{
     let parsers: Vec<Box<dyn Fn(&str,&mut Symbols) -> Option<NekoType>>> = vec![
         Box::new(|s,symb| parse_integer(s,symb).map(NekoInt)),
         Box::new(|s,symb| parse_float(s,symb).map(NekoFloat)),
+        Box::new(|s,symb| parse_keyword(s,symb).map(NekoKeyword)),
         Box::new(|s,symb| parse_string(s,symb).map(NekoString)),
     ];
     
@@ -267,6 +273,15 @@ fn try_parse(s:&str,symb:&mut Symbols) -> Option<NekoType>{
 }
 
 fn parse_symbol(s: &str,symb:&mut Symbols) -> Option<String> {
+    None
+}
+
+fn parse_keyword(s: &str,symb:&mut Symbols) -> Option<String> {
+    if let Some(c) = s.chars().next() {
+        if symb.pair_char(c,"keyword") {
+            return Some(s.to_string());
+        }
+    }
     None
 }
 
