@@ -47,14 +47,14 @@ pub fn tokenize(s:&str,symb:&mut Symbols) -> Vec<String> {
     let mut quoting = false;
     let mut commenting = false;
     for c in s.chars() {
-        if is_char_quote(c) {
+        if symb.pair_char(c,"quote_symbol") {
             //处理引号
             if !quoting && !token.is_empty() {
                 tokens.push(token.clone());
                 token.clear();
             }
             token.push(c);  // quote 本身加进去
-            if !is_char_change_mean(last_char){
+            if !symb.pair_char(last_char,"change_mean") {
                 quoting = !quoting;
             }
 
@@ -64,22 +64,22 @@ pub fn tokenize(s:&str,symb:&mut Symbols) -> Vec<String> {
                 token.clear();
             }
             continue;
-        } else if is_char_comment_symbol(c) && !quoting {
+        } else if symb.pair_char(c,"comment_begin") && !quoting {
             //处理分号
             tokens.push(token.clone());
             token.clear();
             token.push(c);
             commenting = true;
             continue;
-        } else if is_char_change_line(c) && !quoting {
-            //处理换行符
+        } else if symb.pair_char(c,"comment_end") && !quoting {
+            //处理comment结束符号
             commenting = false;   
         }
         
         if quoting || commenting {
             // 在引号或注释时，照单全收
             token.push(c);
-        } else if is_char_trim_symbol(c) {
+        } else if symb.pair_char(c,"split") {
             // 分隔符，提交 token（如果非空）
             if !token.is_empty() {
                 tokens.push(token.clone());
@@ -90,7 +90,7 @@ pub fn tokenize(s:&str,symb:&mut Symbols) -> Vec<String> {
             token.push(c);
         }
         //println!("{}",c);
-        if is_char_change_mean(c) && is_char_change_mean(last_char){
+        if symb.pair_char(c,"change_mean") && symb.pair_char(last_char,"change_mean") {
             last_char = ' ';
         } else{
             last_char = c;
@@ -112,12 +112,12 @@ pub fn tokenize(s:&str,symb:&mut Symbols) -> Vec<String> {
     for last_token in last_tokens {
         let mut pushed = false;
         for c in last_token.chars() {
-            if is_char_quote(c) || is_char_comment_symbol(c) {
+            if symb.pair_char(c,"quote_symbol") || symb.pair_char(c,"comment_begin") {
                 //判断是否是引号或注释符号，是的话忽略本token
                 tokens.push(last_token.clone());
                 pushed = true;
                 break;
-            } else if is_char_sexp_char(c) {
+            } else if let Some(_) = symb.sexp_direction(c) {
                 //匹配S表达式符号（括号）并单独分开
                 if !token.is_empty() {
                     tokens.push(token.clone());
@@ -126,12 +126,12 @@ pub fn tokenize(s:&str,symb:&mut Symbols) -> Vec<String> {
                 token.push(c);
                 tokens.push(token.clone());
                 token.clear();
-            } else if is_char_marco_symbol(c) {
+            } else if symb.pair_char(c,"marco_symbols") {
                 //匹配宏符号（其它ASCII标准的特殊符号）
                 token.push(c);
             } else {
                 //匹配普通字符
-                if is_char_marco_symbol(last_char) {
+                if symb.pair_char(last_char,"marco_symbols") {
                     tokens.push(token.clone());
                     token.clear();
                 }
@@ -155,17 +155,18 @@ pub fn tokenize(s:&str,symb:&mut Symbols) -> Vec<String> {
     last_char = ' ';
     // 循环3:区分单字符与宏字符组合
     for last_token in last_tokens {
-        if is_string_marco_symbol(&last_token) {
+        if symb.pair_str(&last_token,"marco_str") {
             tokens.push(last_token.clone());
         } else {
             let mut pushed = false;
             for c in last_token.chars(){
-                if is_char_quote(c) || is_char_comment_symbol(c) {
+                if symb.pair_char(c,"quote_symbol") || symb.pair_char(c,"comment_begin") {
                     //判断是否是引号或注释符号，是的话忽略本token
                     tokens.push(last_token.clone());
                     pushed = true;
                     break;
-                } else if is_char_marco_symbol(c) {
+                } else if symb.pair_char(c,"special") {
+                    //BUG：输入一个匹配该符号与不匹配的组合，会直接忽略后面不匹配的字符。如!@ 输出@ :keyword 输出 :。
                     token.push(c);
                     tokens.push(token.clone());
                     token.clear();
@@ -184,86 +185,10 @@ pub fn tokenize(s:&str,symb:&mut Symbols) -> Vec<String> {
     return tokens;
 }
 
-fn is_char_sexp_char(c:char) -> bool {
-    match c{
-        '(' | ')' => true,
-        _ => false,
-    }
-}
-
-fn if_char_sexp_with_direction(c:char) -> Option<bool> {
-    //如果char是sexp符号，则获取方向的判定。
-    match c {
-        '(' => Some(true),
-        ')' => Some(false),
-        _ => None
-    }
-}
-
-fn is_char_change_mean(c:char) -> bool {
-    if c == '\\' {
-        true
-    }else{
-        false
-    }
-}
-
-fn is_char_comment_symbol(c:char) -> bool {
-    if c == ';' {
-        true
-    }else{
-        false
-    }
-}
-
-fn is_char_change_line(c:char) -> bool {
-    match c {
-        '\n' => true,
-        _ => false,
-    }
-}
-
-fn is_char_marco_symbol(c:char) -> bool{
-    if c.is_ascii_punctuation() {
-        true
-    }else {
-        false
-    }
-}
-
-fn is_string_marco_symbol(s:&String) -> bool {
-    match s.as_str() {
-        "~@" | "@~" => true,
-        _ => false,
-    }
-}
-
-fn is_char_trim_symbol(c:char) -> bool {
-    match c {
-        '\n' | ' ' | ',' => true,
-        _ => false,
-    }
-}
-
-fn is_char_special_char(c:char) -> bool {
-    match c {
-        '(' | ')' | '{' | '}' | '\'' | '`' | '~' | '@' | '^' => true,
-        _ => false,
-    }
-}
-
-fn is_char_quote(c:char) -> bool{
-    if c == '"' {
-        true
-    }else{
-        false
-    }
-}
-
 pub fn read_form(r:&mut Reader,symb:&mut Symbols) -> NekoType {
     //解析Sexp表达式形式
     if let Some(c) = r.peek().and_then(|token| token.chars().next()) {
-        if let Some(true) = if_char_sexp_with_direction(c) {
+        if let Some(true) = symb.sexp_direction(c) {
             return read_list(r,symb);
         } else {
             return read_atom(r,symb);
@@ -283,7 +208,7 @@ pub fn read_list(r:&mut Reader,symb:&mut Symbols) -> NekoType {
             last_s = s.clone();
             let c = s.chars().next().unwrap();
             //println!("{:?}",r.peek());
-            if let Some(false) = if_char_sexp_with_direction(c) {
+            if let Some(false) = symb.sexp_direction(c) {
                 return NekoList(list);
             }
             list.push(read_form(r,symb));
@@ -293,9 +218,9 @@ pub fn read_list(r:&mut Reader,symb:&mut Symbols) -> NekoType {
             let mut quoting = false;
             let mut last_char = ' ';
             for c in last_s.chars() {
-                if is_char_quote(c) && !is_char_change_mean(last_char) {
+                if symb.pair_char(c,"quote_symbol") && !symb.pair_char(last_char,"change_mean") {
                     quoting = !quoting
-                } else if is_char_change_mean(c) && is_char_change_mean (last_char) {
+                } else if symb.pair_char(c,"change_mean") && symb.pair_char(last_char,"change_mean") {
                     last_char = ' ';
                 } else {
                     last_char = c;
@@ -316,48 +241,48 @@ pub fn read_list(r:&mut Reader,symb:&mut Symbols) -> NekoType {
 pub fn read_atom(r:&mut Reader,symb:&mut Symbols) -> NekoType {
     //解析Sexp表达式内容
     if let Some(s) = r.peek() {
-        let result = try_parse(&s);
+        let result = try_parse(&s,symb);
         return result.unwrap_or(NekoSymbol(s));
     } else {
         return NekoErr("解析失败，未知错误".to_string())
     }
 }
 
-fn try_parse(s:&str) -> Option<NekoType>{
-    let parsers: Vec<Box<dyn Fn(&str) -> Option<NekoType>>> = vec![
-        Box::new(|s| parse_integer(s).map(NekoInt)),
-        Box::new(|s| parse_float(s).map(NekoFloat)),
-        Box::new(|s| parse_string(s).map(NekoString)),
+fn try_parse(s:&str,symb:&mut Symbols) -> Option<NekoType>{
+    let parsers: Vec<Box<dyn Fn(&str,&mut Symbols) -> Option<NekoType>>> = vec![
+        Box::new(|s,symb| parse_integer(s,symb).map(NekoInt)),
+        Box::new(|s,symb| parse_float(s,symb).map(NekoFloat)),
+        Box::new(|s,symb| parse_string(s,symb).map(NekoString)),
     ];
     
     for parser in parsers {
-        if let Some(val) = parser(s) {
+        if let Some(val) = parser(s,symb) {
             return Some(val);
         }
     }
     None
 }
 
-fn parse_symbol(s: &str) -> Option<String> {
+fn parse_symbol(s: &str,symb:&mut Symbols) -> Option<String> {
     None
 }
 
-fn parse_string(s: &str) -> Option<String> {
+fn parse_string(s: &str,symb:&mut Symbols) -> Option<String> {
     if let Some(c) = s.chars().next() {
         //第一个字符是引号
-        if is_char_quote(c) {
+        if symb.pair_char(c,"quote_symbol") {
             let mut t =  String::new();
             let mut last_char = ' ';
             for tc in s.chars() {
-                if is_char_change_mean(last_char) {
-                    if is_char_change_mean(tc) {
+                if symb.pair_char(last_char,"change_mean") {
+                    if symb.pair_char(tc,"change_mean"){
                         t.push('\\');
                     } else if tc == 'n' {
                         t.push('\n');
-                    } else if is_char_quote(tc) {
+                    } else if symb.pair_char(tc,"quote_symbol") {
                         t.push('"');
                     }
-                } else if !is_char_change_mean(tc) {
+                } else if !symb.pair_char(tc,"change_mean") {
                     t.push(tc);
                 }
                 last_char = tc
@@ -370,10 +295,10 @@ fn parse_string(s: &str) -> Option<String> {
     return None;
 }
 
-fn parse_float(s: &str) -> Option<f64> {
+fn parse_float(s: &str,symb:&mut Symbols) -> Option<f64> {
     s.parse::<f64>().ok()
 }
 
-fn parse_integer(s: &str) -> Option<i64> {
+fn parse_integer(s: &str,symb:&mut Symbols) -> Option<i64> {
     s.parse::<i64>().ok()
 }

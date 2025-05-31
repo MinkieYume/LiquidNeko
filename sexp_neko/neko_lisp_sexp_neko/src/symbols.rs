@@ -41,7 +41,7 @@ impl Symbols {
         }
     }
 
-    fn sexp_direction(&mut self,c:char) -> Option<bool> {
+    pub fn sexp_direction(&mut self,c:char) -> Option<bool> {
         //如果char是sexp符号，则获取方向的判定。
         if self.pair_char(c,"s_exp_begin") {
             Some(true)
@@ -67,6 +67,7 @@ impl Symbols {
             "change_mean" => char_pair(c,self.change_mean.clone()),
             "comment_begin" => char_pair(c,self.comment_begin.clone()),
             "comment_end" => char_pair(c,self.comment_end.clone()),
+            "split" => char_pair(c,self.split_symbols.clone()),
             "special" => char_pair(c,self.special_symbols.clone()),
             "marco_symbols" => char_pair(c,self.marco_symbols.clone()),
             _ => false,
