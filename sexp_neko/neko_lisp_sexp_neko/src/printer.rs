@@ -1,11 +1,13 @@
 use alloc::{vec::Vec, string::String, boxed::Box};
 use core::fmt::Write;
 use crate::types::NekoType;
-use crate::types::NekoType::*;
+use crate::types::NekoValue;
+use crate::types::NekoValue::*;
 
 pub fn pr_str(neko:NekoType) -> String {
     let mut output = String::new();
-    match neko {
+    let value = neko.get_value();
+    match value {
         NekoInt(n) => {output = n.to_string();},
         NekoFloat(f) => {output = f.to_string();},
         NekoSymbol(s) => {output = s;},

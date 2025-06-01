@@ -1,7 +1,8 @@
-use alloc::{vec::Vec, string::String, boxed::Box};
+use alloc::{vec::Vec, string::String, boxed::Box ,str::Chars};
 use core::fmt::Write;
 use crate::types::NekoType;
-use crate::types::NekoType::*;
+use crate::types::NekoValue;
+use crate::types::NekoValue::*;
 use crate::symbols::Symbols;
 
 pub struct Reader {
@@ -29,15 +30,59 @@ impl Reader {
     }
 }
 
-pub fn read_str(s:&str,symb:&mut Symbols) -> Option<Reader> {
+pub fn pre_read_str(s:&str,symb:&mut Symbols) -> Vec<String>{
+    let mut s_chars = s.chars();
+    return pre_read_form(&mut s_chars,symb);
+}
+
+fn pre_read_form(s_chars:&mut Chars<'_>,symb:&mut Symbols) -> Vec<String> {
+    let mut sexps:Vec<String> = Vec::new();
+    let mut sexp = String::new();
+    while let Some(c) = s_chars.next() {
+        if symb.pair_char(c,"s_exp_begin") {
+            if !sexp.is_empty() {
+                sexps.push(sexp.clone());
+                sexp.clear();
+            }
+            sexp.push(c);
+            sexp.push_str(pre_read_list(s_chars,symb).as_str());
+            sexps.push(sexp.clone());
+            sexp.clear();
+        } else if symb.pair_char(c,"split") {
+            if !sexp.is_empty() {
+                sexps.push(sexp.clone());
+                sexp.clear();
+            }
+        } else {
+            sexp.push(c);
+        }
+    }
+    return sexps;
+}
+
+fn pre_read_list(s_chars:&mut Chars<'_>,symb:&mut Symbols) -> String {
+    let mut sexp = String::new();
+    while let Some(c) = s_chars.next() {
+        sexp.push(c);
+        if symb.pair_char(c,"s_exp_begin") {
+            sexp.push_str(pre_read_list(s_chars,symb).as_str());
+        } else if symb.pair_char(c,"s_exp_end") {
+            return sexp;
+        }
+    }
+    return sexp;
+}
+
+pub fn read_str(s:&str,symb:&mut Symbols) -> NekoType {
     let t = tokenize(s,symb);
     if !t.is_empty() {
-        Some(Reader {
+        let mut r = Reader {
             tokens: t,
             position: 0,
-        })
+        };
+        read_form(&mut r,symb)
     } else {
-        None
+        NekoType::nil()
     }
 }
 pub fn tokenize(s:&str,symb:&mut Symbols) -> Vec<String> {
@@ -202,7 +247,7 @@ pub fn read_form(r:&mut Reader,symb:&mut Symbols) -> NekoType {
             return read_atom(r,symb);
         }
     } else {
-        return NekoNil;
+        return NekoType::nil();
     }
 }
 
@@ -217,7 +262,7 @@ pub fn read_list(r:&mut Reader,symb:&mut Symbols) -> NekoType {
             let c = s.chars().next().unwrap();
             //println!("{:?}",r.peek());
             if let Some(false) = symb.sexp_direction(c) {
-                return NekoList(list);
+                return NekoType::list(list);
             }
             list.push(read_form(r,symb));
         } else {
@@ -237,31 +282,31 @@ pub fn read_list(r:&mut Reader,symb:&mut Symbols) -> NekoType {
 
             if quoting {
                 write!(&mut err,"引号越界：{}",last_s).unwrap();
-                return NekoErr(err);
+                return NekoType::err(err);
             }
             
-            return NekoErr("解析失败，未知错误".to_string());
+            return NekoType::err("解析失败，未知错误".to_string());
         }
     }
-    return NekoErr("Sexp表达式没有结尾".to_string());
+    return NekoType::err("Sexp表达式没有结尾".to_string());
 }
 
 pub fn read_atom(r:&mut Reader,symb:&mut Symbols) -> NekoType {
     //解析Sexp表达式内容
     if let Some(s) = r.peek() {
         let result = try_parse(&s,symb);
-        return result.unwrap_or(NekoSymbol(s));
+        return result.unwrap_or(NekoType::symbol(s));
     } else {
-        return NekoErr("解析失败，未知错误".to_string())
+        return NekoType::symbol("解析失败，未知错误".to_string())
     }
 }
 
 fn try_parse(s:&str,symb:&mut Symbols) -> Option<NekoType>{
     let parsers: Vec<Box<dyn Fn(&str,&mut Symbols) -> Option<NekoType>>> = vec![
-        Box::new(|s,symb| parse_integer(s,symb).map(NekoInt)),
-        Box::new(|s,symb| parse_float(s,symb).map(NekoFloat)),
-        Box::new(|s,symb| parse_keyword(s,symb).map(NekoKeyword)),
-        Box::new(|s,symb| parse_string(s,symb).map(NekoString)),
+        Box::new(|s,symb| parse_integer(s,symb).map(NekoType::int)),
+        Box::new(|s,symb| parse_float(s,symb).map(NekoType::float)),
+        Box::new(|s,symb| parse_keyword(s,symb).map(NekoType::keyword)),
+        Box::new(|s,symb| parse_string(s,symb).map(NekoType::string)),
     ];
     
     for parser in parsers {
