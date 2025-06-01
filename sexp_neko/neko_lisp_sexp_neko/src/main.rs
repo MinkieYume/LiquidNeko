@@ -9,10 +9,12 @@ mod env;
 use std::io::{self, Write};
 use crate::types::NekoType;
 use crate::symbols::Symbols;
+use crate::env::Env;
 
 fn main() {
     let mut symbols = Symbols::new();
-    loop{
+    let mut env = Env::default();
+    loop {
 	let mut input = String::new();
 	print!(">>> ");
 	io::stdout().flush().unwrap();

@@ -8,9 +8,9 @@ pub fn pr_str(neko:NekoType) -> String {
     let mut output = String::new();
     let value = neko.get_value();
     match value {
-        NekoInt(n) => {output = n.to_string();},
-        NekoFloat(f) => {output = f.to_string();},
-        NekoSymbol(s) => {output = s;},
+        Nekoi64(n) => {output = n.to_string();},
+        Nekof64(f) => {output = f.to_string();},
+        NekoSymbol(s) => {output = s.val();},
         NekoString(s) => {output = s;},
         NekoNil => {output = "nil".to_string();},
         NekoKeyword(k) => {output = k},

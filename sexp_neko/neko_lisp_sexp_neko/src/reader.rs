@@ -303,8 +303,8 @@ pub fn read_atom(r:&mut Reader,symb:&mut Symbols) -> NekoType {
 
 fn try_parse(s:&str,symb:&mut Symbols) -> Option<NekoType>{
     let parsers: Vec<Box<dyn Fn(&str,&mut Symbols) -> Option<NekoType>>> = vec![
-        Box::new(|s,symb| parse_integer(s,symb).map(NekoType::int)),
-        Box::new(|s,symb| parse_float(s,symb).map(NekoType::float)),
+        Box::new(|s,symb| parse_integer(s,symb).map(NekoType::int_64)),
+        Box::new(|s,symb| parse_float(s,symb).map(NekoType::float_64)),
         Box::new(|s,symb| parse_keyword(s,symb).map(NekoType::keyword)),
         Box::new(|s,symb| parse_string(s,symb).map(NekoType::string)),
     ];
