@@ -271,3 +271,101 @@ impl Add for NekoType {
         Self::err("不支持的操作".to_string())
     }
 }
+
+impl Sub for NekoType {
+        type Output = Self;
+    
+    fn sub(self, other: Self) -> Self {
+        match self.get_value() {
+            Nekoi64(a) => {
+                if let Nekoi64(b) = other.get_value() {
+                    return Self::int_64(a-b);
+                }
+            },
+            Nekof64(a) => {
+                if let Nekof64(b) = other.get_value() {
+                    return Self::float_64(a-b);
+                }
+            },
+            _ => {}
+        }
+        Self::err("不支持的操作".to_string())
+    }
+}
+
+impl Mul for NekoType {
+        type Output = Self;
+    
+    fn mul(self, other: Self) -> Self {
+        match self.get_value() {
+            Nekoi64(a) => {
+                if let Nekoi64(b) = other.get_value() {
+                    return Self::int_64(a*b);
+                }
+            },
+            Nekof64(a) => {
+                if let Nekof64(b) = other.get_value() {
+                    return Self::float_64(a*b);
+                }
+            },
+            _ => {}
+        }
+        Self::err("不支持的操作".to_string())
+    }
+}
+
+impl Div for NekoType {
+    type Output = Self;
+    
+    fn div(self, other: Self) -> Self {
+        match self.get_value() {
+            Nekoi64(a) => {
+                if let Nekoi64(b) = other.get_value() {
+                    if b == 0 {
+                        return Self::err("0不能被除".to_string());
+                    } else {
+                        let c:f64 = a as f64 / b as f64;
+                        if c.fract() != 0.0 {
+                            return Self::float_64(c)
+                        } else{
+                            return Self::int_64(c as i64);
+                        }
+                    }
+                } else if let Nekof64(b) = other.get_value() {
+                    if b == 0.0 {
+                        return Self::err("0不能被除".to_string());
+                    } else {
+                        let c:f64 = a as f64 / b as f64;
+                        if c.fract() != 0.0 {
+                            return Self::float_64(c)
+                        } else{
+                            return Self::int_64(c as i64);
+                        }
+                    }
+                }
+            },
+            Nekof64(a) => {
+                if let Nekof64(b) = other.get_value() {
+                    if b == 0.0 {
+                        return Self::err("0不能被除".to_string());
+                    } else {
+                        return Self::float_64(a/b);
+                    }
+                } else if let Nekoi64(b) = other.get_value() {
+                    if b == 0 {
+                        return Self::err("0不能被除".to_string());
+                    } else {
+                        let c:f64 = a as f64 / b as f64;
+                        if c.fract() != 0.0 {
+                            return Self::float_64(c)
+                        } else{
+                            return Self::int_64(c as i64);
+                        }
+                    }
+                }
+            },
+            _ => {}
+        }
+        Self::err("不支持的操作".to_string())
+    }
+}

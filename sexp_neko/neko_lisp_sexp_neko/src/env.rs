@@ -33,6 +33,18 @@ impl Env {
             boxes:Rc::new(Box::new(|v| Self::add_v(v)))
         };
         env.set(Symbol("+".to_string()),NekoType::func(add));
+        let sub = Function {
+            boxes:Rc::new(Box::new(|v| Self::sub_v(v)))
+        };
+        env.set(Symbol("-".to_string()),NekoType::func(sub));
+        let mul = Function {
+            boxes:Rc::new(Box::new(|v| Self::mul_v(v)))
+        };
+        env.set(Symbol("*".to_string()),NekoType::func(mul));
+        let div = Function {
+            boxes:Rc::new(Box::new(|v| Self::div_v(v)))
+        };
+        env.set(Symbol("/".to_string()),NekoType::func(div));
         env
     }
 
@@ -45,6 +57,42 @@ impl Env {
                 n1=n1+n;
             }
             n1                
+        }
+    }
+
+    fn sub_v(mut v:Vec<NekoType>) -> NekoType {
+        if v.len() < 1 {
+            NekoType::err("参数不足".to_string())
+        } else {
+            let mut n1 = v.remove(0);
+            for n in v {
+                n1=n1-n;
+            }
+            n1                
+        }
+    }
+
+    fn mul_v(mut v:Vec<NekoType>) -> NekoType {
+        if v.len() < 1 {
+            NekoType::err("参数不足".to_string())
+        } else {
+            let mut n1 = v.remove(0);
+            for n in v {
+                n1=n1*n;
+            }
+            n1
+        }
+    }
+
+    fn div_v(mut v:Vec<NekoType>) -> NekoType {
+        if v.len() < 1 {
+            NekoType::err("参数不足".to_string())
+        } else {
+            let mut n1 = v.remove(0);
+            for n in v {
+                n1=n1/n;
+            }
+            n1
         }
     }
 
