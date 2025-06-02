@@ -32,19 +32,19 @@ impl Env {
         let add = Function {
             boxes:Rc::new(Box::new(|v| Self::add_v(v)))
         };
-        env.set(Symbol("+".to_string()),add)
+        env.set(Symbol("+".to_string()),NekoType::func(add));
         env
     }
 
     fn add_v(mut v:Vec<NekoType>) -> NekoType {
-        if !v.len() < 2 {
+        if v.len() < 1 {
+            NekoType::err("参数不足".to_string())
+        } else {
             let mut n1 = v.remove(0);
             for n in v {
                 n1=n1+n;
             }
-            n1
-        } else {
-            NekoType::err("参数不足".to_string())
+            n1                
         }
     }
 
@@ -62,7 +62,7 @@ impl Env {
         let val = renv.data.get(key);
         match val {
             Some(neko) => neko.clone(),
-            None => NekoType::err("获取键失败".to_string()),
+            None => NekoType::err("不存在的键".to_string()),
         }
     }
 

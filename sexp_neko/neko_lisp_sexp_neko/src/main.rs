@@ -27,7 +27,7 @@ fn main() {
         let mut results:Vec<String> = Vec::new();
         //println!("{:?}",&strs);
         for st in strs {
-            let s = rep(st.as_str(),&mut symbols);
+            let s = rep(st.as_str(),&mut symbols,&mut env);
             results.push(st);
             println!("{}",&s);
         }
@@ -39,16 +39,16 @@ fn READ(mut s:&str,symb:&mut Symbols) -> NekoType {
     reader::read_str(s,symb)
 }
 
-fn EVAL(mut n:NekoType,symb:&mut Symbols) -> NekoType {
-    return n
+fn EVAL(n:NekoType,symb:&mut Symbols,env:&mut Env) -> NekoType {
+    eval::eval(n,env)
 }
 
 fn PRINT(n:NekoType,symb:&mut Symbols) -> String {
     return printer::pr_str(n)
 }
 
-fn rep(mut s:&str,symb:&mut Symbols) -> String {
+fn rep(mut s:&str,symb:&mut Symbols,env:&mut Env) -> String {
    let mut n = READ(s,symb);
-    n = EVAL(n,symb);
+    n = EVAL(n,symb,env);
     return PRINT(n,symb);
 }

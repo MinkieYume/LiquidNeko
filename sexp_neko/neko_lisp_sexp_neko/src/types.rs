@@ -1,8 +1,9 @@
 use alloc::{vec::Vec, string::String, boxed::Box ,rc::Rc};
-use core::ops::{Add,Sub,Mul,Div,Fn};
+use core::ops::{Add,Sub,Mul,Div,Fn,Deref};
 use core::cmp::{Eq,PartialEq};
 use core::mem::discriminant;
 use core::cell::RefCell;
+use std::borrow::Borrow;
 use NekoValue::*;
 
 #[derive(Clone)]
@@ -174,7 +175,7 @@ impl NekoType {
         NekoType(Rc::new(NekoFn(func)))
     }
 
-    pub fn is_fn(&self) {
+    pub fn is_fn(&self) -> bool{
         match *self.0 {
             NekoFn(_) => true,
             _ => false,
@@ -207,11 +208,21 @@ impl NekoType {
     pub fn get_value(&self) -> NekoValue {
         return (*self.0).clone()
     }
+
+    pub fn get_ref(&self) -> Rc<NekoValue> {
+        return self.0.clone()
+    }
 }
 
 impl Symbol {
     pub fn val(&self) -> String {
         self.0.clone()
+    }
+}
+
+impl Function {
+    pub fn call(&self,v:Vec<NekoType>) -> NekoType {
+        (*self.boxes)(v)
     }
 }
 
