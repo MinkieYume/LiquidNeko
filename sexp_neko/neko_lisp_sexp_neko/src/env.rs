@@ -45,6 +45,10 @@ impl Env {
             boxes:Rc::new(Box::new(|v| Self::div_v(v)))
         };
         env.set(Symbol("/".to_string()),NekoType::func(div));
+//        let def = Symbol("def!".to_string());
+//        env.set(def.clone(),NekoType::from_symbol(def));
+//        let let_ = Symbol("let".to_string());
+//        env.set(let_.clone(),NekoType::from_symbol(let_));
         env
     }
 
@@ -105,21 +109,37 @@ impl Env {
         self.0.borrow_mut().data.insert(skey, val);
     }
 
-    pub fn get(&self,key:&Symbol) -> NekoType {
+    pub fn find(&self,key:&Symbol) -> Option<Env> {
         let renv = self.0.borrow();
         let val = renv.data.get(key);
         match val {
-            Some(neko) => neko.clone(),
-            None => NekoType::err("不存在的键".to_string()),
+            Some(_) => Some(self.clone()),
+            None => {
+                if let Some(o) = &renv.outer {
+                    return Some(o.clone());
+                } else {
+                    return None
+                }
+            },
+        }
+    }
+
+    pub fn get(&self,key:&Symbol) -> NekoType {
+        let o_env = self.find(key);
+        match o_env {
+            Some(env) => {
+                let renv = env.0.borrow();
+                let val = renv.data.get(key);
+                match val {
+                    Some(neko) => neko.clone(),
+                    None => NekoType::err("环境中不存在该键".to_string()),
+                }
+            },
+            None => NekoType::err("环境中不存在该键".to_string()),
         }
     }
 
     pub fn get_by_str(&self,key:&str) -> NekoType {
-        let renv = self.0.borrow();
-        let val = renv.data.get(&Symbol(key.to_string()));
-        match val {
-            Some(neko) => neko.clone(),
-            None => NekoType::err("获取键失败".to_string()),
-        }
+        self.get(&Symbol(key.to_string()))
     }
 }

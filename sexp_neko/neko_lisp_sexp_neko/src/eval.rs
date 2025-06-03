@@ -4,6 +4,7 @@ use std::borrow::Borrow;
 use crate::types::NekoType;
 use crate::types::NekoValue;
 use crate::types::NekoValue::*;
+use crate::types::Symbol;
 use crate::symbols::Symbols;
 use crate::env::Env;
 
@@ -24,27 +25,72 @@ pub fn eval_ast(mut n:NekoType,env:&mut Env) -> NekoType {
 }
 
 pub fn eval(mut n:NekoType,env:&mut Env) -> NekoType {
-    //对参数进行执行操作
+    //对参数进行判定并决定是否执行或应用
     match n.get_ref().borrow() {
         NekoList(v) => {
-            if !v.is_empty() {
-                let mut nn = eval_ast(n,env);
-                if let NekoList(mut nv) = nn.get_value() {
-                    let mut nekofn = nv.remove(0);
-                    let mut args:Vec<NekoType> = Vec::new();
-                    if let NekoFn(f) = nekofn.get_value() {
-                        for cn in nv {
-                            args.push(cn);
-                        }
-                        return f.call(args);
-                    }
-                }
-                return nn;
-                
+            if !v.is_empty() {                
+                apply(n,env)
             } else {
                 n
             }
         },
         _ => eval_ast(n,env)
     }
+}
+
+pub fn apply(mut list:NekoType,env:&mut Env) -> NekoType {
+    //对列表执行求值与应用操作
+    if let NekoList(mut v) = list.get_value() {
+        let mut first_arg = v.remove(0);
+        let mut args:Vec<NekoType> = Vec::new();
+        for cn in v {
+            args.push(cn);
+        };
+        match first_arg.get_value() {
+            NekoFn(f) => {
+                return f.call(args);
+            },
+            NekoSymbol(s) => {
+                if let Symbol(var) = s {
+                    if var == "def!".to_string() {
+                        return def(args,env);
+                    } else if if var == "let".to_string() {
+                        return let_(args,env);
+                    } else {
+                        return apply(eval_ast(list,env),env);
+                    }
+                }
+            },
+            _ => {return list},
+        };
+    };
+    return list;
+}
+
+fn def(mut args:Vec<NekoType>,env:&mut Env) -> NekoType {
+    if args.len()%2 == 0 {
+        let mut last_arg = NekoType::nil();
+        let mut result_args:Vec<NekoType> = Vec::new();
+        for arg in args {
+            if let NekoSymbol(a) = last_arg.get_value() {
+                let new_val = eval(arg,env);
+                env.set(a,new_val.clone());
+                result_args.push(new_val.clone());
+                last_arg = NekoType::nil();
+            } else {
+                last_arg = arg.clone();
+            }
+        }
+        if result_args.len() == 1 {
+            return result_args.remove(0);
+        } else {
+            return NekoType::list(result_args)
+        }
+    } else {
+        return NekoType::err("参数不匹配".to_string());
+    }
+}
+
+fn let_(mut args:Vec<NekoType>,env:&mut Env) -> NekoType {
+    
 }

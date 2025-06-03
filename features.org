@@ -3,8 +3,17 @@
 :CATEGORY: NekoLispSN
 :END:
 ** DONE 添加Forms类，以便识别各个符号
-** TODO 重构Reader代码
+** TODO [#C] 重构Reader代码
 ** DONE 添加:keyword解析实现
 ** TODO [#C] 为Reader添加宏支持
 ** TODO [#C] 为Reader支持向量
 ** TODO [#C] 为Reader支持字典
+** TODO [#C] 为EvalAst添加向量和哈希表支持
+如果 ast 是一个向量: 返回对于向量中的每个元素 EVAL 调用得到的结果所组成的向量
+如果 ast 是一个哈希表: 返回一个新的哈希表，它的键是从原哈希表中来的键，值是对于原哈希表中的键所对应的值调用 EVAL 得到的结果。
+** TODO 优化Reader逻辑 确保只有symbol前面的宏符号会被截断
+** TODO 实现步骤3 Environments环境
+** TODO 为Env引入权限分级制以确保安全
+** TODO 将符号Symbols类作为Env的参数
+** TODO 创建Number抽象类
+要求Number抽象类能自动处理并返回所有Rust的数字类型并映射为Neko的数据类型
