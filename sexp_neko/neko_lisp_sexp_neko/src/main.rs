@@ -6,6 +6,7 @@ mod printer;
 mod symbols;
 mod eval;
 mod env;
+mod core;
 use std::io::{self, Write};
 use crate::types::NekoType;
 use crate::symbols::Symbols;

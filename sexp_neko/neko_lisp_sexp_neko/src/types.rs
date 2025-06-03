@@ -5,6 +5,8 @@ use core::mem::discriminant;
 use core::cell::RefCell;
 use std::borrow::Borrow;
 use NekoValue::*;
+use Function::*;
+use crate::env::Env;
 
 #[derive(Clone)]
 pub enum NekoValue {
@@ -19,7 +21,6 @@ pub enum NekoValue {
     NekoFn(Function),
     NekoErr(String),
     NekoTrue,
-    NekoFalse,
     NekoNil
 }
 
@@ -30,8 +31,9 @@ pub struct Symbol(pub String);
 pub struct NekoType(pub Rc<NekoValue>);
 
 #[derive(Clone)]
-pub struct Function {
-    pub boxes:Rc<Box<dyn Fn(Vec<NekoType>) -> NekoType>>,
+pub enum Function {
+    Lambda(Rc<Box<dyn Fn(Vec<NekoType>) -> NekoType>>),
+    SpecialForms(Rc<Box<dyn Fn(Vec<NekoType>,&mut Env) -> NekoType>>)
 }
 
 impl NekoType {
@@ -159,17 +161,6 @@ impl NekoType {
             _ => false,
         }
     }
-    
-    pub fn neko_false() -> NekoType {
-        NekoType(Rc::new(NekoFalse))
-    }
-    
-    pub fn is_false(&self) -> bool {
-        match *self.0 {
-            NekoFalse => true,
-            _ => false,
-        }
-    }
 
     pub fn func(func:Function) -> NekoType {
         NekoType(Rc::new(NekoFn(func)))
@@ -199,7 +190,6 @@ impl NekoType {
             NekoErr(_) => "err",
             NekoKeyword(_) => "keyword",
             NekoTrue => "true",
-            NekoFalse => "false",
             NekoNil => "nil",
             _ => "unknown",
         }
@@ -221,8 +211,34 @@ impl Symbol {
 }
 
 impl Function {
-    pub fn call(&self,v:Vec<NekoType>) -> NekoType {
-        (*self.boxes)(v)
+    pub fn is_lambda(&self) -> bool{
+        match self {
+            Lambda(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_special(&self) -> bool{
+        match self {
+            SpecialForms(_) => true,
+            _ => false,
+        }
+    }
+    
+    pub fn call_l(&self,v:Vec<NekoType>) -> NekoType {
+        if let Lambda(l) = self {
+            (*l)(v)
+        } else {
+            NekoType::err("无法调用该函数".to_string())
+        }
+    }
+
+    pub fn call_s(&self,v:Vec<NekoType>,e:&mut Env) -> NekoType {
+        if let SpecialForms(l) = self {
+            (*l)(v,e)
+        } else {
+            NekoType::err("无法调用该函数".to_string())
+        }
     }
 }
 

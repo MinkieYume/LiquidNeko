@@ -3,6 +3,7 @@ use alloc::{boxed::Box,string::String, vec::Vec,rc::Rc};
 use core::cell::RefCell;
 use hashbrown::HashMap;
 use core::fmt::Write;
+use crate::core::Core;
 use crate::types::NekoType;
 use crate::types::Symbol;
 use crate::types::Function;
@@ -24,80 +25,24 @@ impl Env {
         })))
     }
 
-    pub fn default() -> Env {
+    pub fn with_bindings(outer:Option<&Env>,mut bindings:HashMap<Symbol, NekoType>) -> Env {
         let mut env = Env(Rc::new(RefCell::new(EnvType {
-            outer: None,
+            outer: outer.map(|e| e.clone()),
             data: HashMap::new(),
         })));
-        let add = Function {
-            boxes:Rc::new(Box::new(|v| Self::add_v(v)))
-        };
-        env.set(Symbol("+".to_string()),NekoType::func(add));
-        let sub = Function {
-            boxes:Rc::new(Box::new(|v| Self::sub_v(v)))
-        };
-        env.set(Symbol("-".to_string()),NekoType::func(sub));
-        let mul = Function {
-            boxes:Rc::new(Box::new(|v| Self::mul_v(v)))
-        };
-        env.set(Symbol("*".to_string()),NekoType::func(mul));
-        let div = Function {
-            boxes:Rc::new(Box::new(|v| Self::div_v(v)))
-        };
-        env.set(Symbol("/".to_string()),NekoType::func(div));
-//        let def = Symbol("def!".to_string());
-//        env.set(def.clone(),NekoType::from_symbol(def));
-//        let let_ = Symbol("let".to_string());
-//        env.set(let_.clone(),NekoType::from_symbol(let_));
+        let keys = bindings.keys();
+        for bind in keys {
+            if let Some(mut val) = bindings.get(bind) {
+                env.set(bind.clone(),val.clone());
+            }
+            
+        }
         env
     }
 
-    fn add_v(mut v:Vec<NekoType>) -> NekoType {
-        if v.len() < 1 {
-            NekoType::err("参数不足".to_string())
-        } else {
-            let mut n1 = v.remove(0);
-            for n in v {
-                n1=n1+n;
-            }
-            n1                
-        }
-    }
-
-    fn sub_v(mut v:Vec<NekoType>) -> NekoType {
-        if v.len() < 1 {
-            NekoType::err("参数不足".to_string())
-        } else {
-            let mut n1 = v.remove(0);
-            for n in v {
-                n1=n1-n;
-            }
-            n1                
-        }
-    }
-
-    fn mul_v(mut v:Vec<NekoType>) -> NekoType {
-        if v.len() < 1 {
-            NekoType::err("参数不足".to_string())
-        } else {
-            let mut n1 = v.remove(0);
-            for n in v {
-                n1=n1*n;
-            }
-            n1
-        }
-    }
-
-    fn div_v(mut v:Vec<NekoType>) -> NekoType {
-        if v.len() < 1 {
-            NekoType::err("参数不足".to_string())
-        } else {
-            let mut n1 = v.remove(0);
-            for n in v {
-                n1=n1/n;
-            }
-            n1
-        }
+    pub fn default() -> Env {
+        let core = Core::default();
+        Env::with_bindings(None,core.binddings)
     }
 
     pub fn set(&self,key:Symbol, val: NekoType) {

@@ -48,108 +48,24 @@ pub fn apply(mut list:NekoType,env:&mut Env) -> NekoType {
         };
         match first_arg.get_value() {
             NekoFn(f) => {
-                return f.call(args);
+                if f.is_lambda(){
+                    return f.call_l(args);
+                } else {
+                    return NekoType::err("不可调用函数".to_string());
+                }
             },
-            NekoSymbol(s) => {
-                if let Symbol(var) = s {
-                    if var == "def!".to_string() {
-                        return def(args,env);
-                    } else if var == "let".to_string() {
-                        return let_(args,env);
-                    } else {
-                        return apply(eval_ast(list,env),env);
+            NekoSymbol(_) => {
+                let mut nfn
+                    = eval_ast(first_arg.clone(),env);
+                if let NekoFn(f) = nfn.get_value() {
+                    if f.is_special() {
+                        return f.call_s(args,env);
                     }
                 }
+                return apply(eval_ast(list,env),env);
             },
             _ => {return list},
         };
     };
     return list;
-}
-
-fn def(mut args:Vec<NekoType>,env:&mut Env) -> NekoType {
-    if args.len()%2 == 0 {
-        let mut last_arg = NekoType::nil();
-        let mut result_args:Vec<NekoType> = Vec::new();
-        for arg in args {
-            if let NekoSymbol(a) = last_arg.get_value() {
-                let new_val = eval(arg,env);
-                env.set(a,new_val.clone());
-                result_args.push(new_val.clone());
-                last_arg = NekoType::nil();
-            } else {
-                last_arg = arg.clone();
-            }
-        }
-        if result_args.len() == 1 {
-            return result_args.remove(0);
-        } else {
-            return NekoType::list(result_args)
-        }
-    } else {
-        return NekoType::err("参数不匹配".to_string());
-    }
-}
-
-fn let_(mut args:Vec<NekoType>,env:&mut Env) -> NekoType {
-    let mut bindings = args.remove(0);
-    let mut n_env = Env::new(Some(&env));
-    if let NekoList(bs) = bindings.get_value() {
-        let mut r_env = let_set_bindings(bs,&mut n_env);
-        if let Some(e) = r_env {
-            let mut n_env = e;
-            let mut list = NekoType::list(args);
-            let result = eval(list,&mut n_env);
-            match result.get_value() {
-                NekoList(mut l) => {
-                    if l.len() == 1 {
-                        return l.remove(0);
-                    } else {
-                        return result;
-                    }
-                }
-                _ => {return result}
-            }
-        }
-    };
-    return NekoType::err("let的绑定不合规".to_string());
-}
-
-fn let_set_bindings(mut args:Vec<NekoType>,env:&mut Env) -> Option<&mut Env> {
-    let mut first_arg = args.remove(0);
-    match first_arg.get_value() {
-        NekoList(mut b) => {
-            let mut n_env = env;
-            let mut oenv = let_set_bindings(b,n_env);
-            if let Some(e) = oenv{
-                n_env = e;
-                for arg in args {
-                    if let NekoList(ab) = arg.get_value() {
-                        let mut n_oenv =
-                            let_set_bindings(ab,n_env);
-                        if let Some(ne) = n_oenv {
-                            n_env = ne
-                        } else {
-                            return None;
-                        }
-                    } else {
-                        return None;
-                    }
-                }
-                return Some(n_env);
-            }
-            return None;
-        },
-        NekoSymbol(s) => {
-            if args.len() != 1 {
-                return None;
-            } else {
-                let mut secend_arg = args.remove(0);
-                let mut n = eval(secend_arg,env);
-                env.set(s,n);
-                return Some(env)
-            }
-        },
-        _ => {None}
-    }
 }

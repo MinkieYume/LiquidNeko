@@ -308,6 +308,16 @@ fn try_parse(s:&str,symb:&mut Symbols) -> Option<NekoType>{
         Box::new(|s,symb| parse_keyword(s,symb).map(NekoType::keyword)),
         Box::new(|s,symb| parse_string(s,symb).map(NekoType::string)),
     ];
+
+    match s {
+        "nil" => {
+            return Some(NekoType::nil())
+        },
+        "T" => {
+            return Some(NekoType::neko_true())
+        },
+        _ => {}
+    }
     
     for parser in parsers {
         if let Some(val) = parser(s,symb) {

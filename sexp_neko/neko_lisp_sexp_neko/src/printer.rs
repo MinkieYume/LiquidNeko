@@ -13,6 +13,7 @@ pub fn pr_str(neko:NekoType) -> String {
         NekoSymbol(s) => {output = s.val();},
         NekoString(s) => {output = s;},
         NekoNil => {output = "nil".to_string();},
+        NekoTrue => {output = "T".to_string();},
         NekoKeyword(k) => {output = k},
         NekoErr(e) => {write!(&mut output,"Error: {}", e);},
         NekoList(v) => {
