@@ -119,7 +119,26 @@ fn let_set_bindings(mut args:Vec<NekoType>,env:&mut Env) -> Option<&mut Env> {
     let mut first_arg = args.remove(0);
     match first_arg.get_value() {
         NekoList(mut b) => {
-            return let_set_bindings(b,env);
+            let mut n_env = env;
+            let mut oenv = let_set_bindings(b,n_env);
+            if let Some(e) = oenv{
+                n_env = e;
+                for arg in args {
+                    if let NekoList(ab) = arg.get_value() {
+                        let mut n_oenv =
+                            let_set_bindings(ab,n_env);
+                        if let Some(ne) = n_oenv {
+                            n_env = ne
+                        } else {
+                            return None;
+                        }
+                    } else {
+                        return None;
+                    }
+                }
+                return Some(n_env);
+            }
+            return None;
         },
         NekoSymbol(s) => {
             if args.len() != 1 {
