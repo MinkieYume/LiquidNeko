@@ -54,7 +54,7 @@ pub fn apply(mut list:NekoType,env:&mut Env) -> NekoType {
                 if let Symbol(var) = s {
                     if var == "def!".to_string() {
                         return def(args,env);
-                    } else if if var == "let".to_string() {
+                    } else if var == "let".to_string() {
                         return let_(args,env);
                     } else {
                         return apply(eval_ast(list,env),env);
@@ -92,5 +92,5 @@ fn def(mut args:Vec<NekoType>,env:&mut Env) -> NekoType {
 }
 
 fn let_(mut args:Vec<NekoType>,env:&mut Env) -> NekoType {
-    
+    args.remove(0)
 }
