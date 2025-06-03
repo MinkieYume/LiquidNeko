@@ -92,5 +92,45 @@ fn def(mut args:Vec<NekoType>,env:&mut Env) -> NekoType {
 }
 
 fn let_(mut args:Vec<NekoType>,env:&mut Env) -> NekoType {
-    args.remove(0)
+    let mut bindings = args.remove(0);
+    let mut n_env = Env::new(Some(&env));
+    if let NekoList(bs) = bindings.get_value() {
+        let mut r_env = let_set_bindings(bs,&mut n_env);
+        if let Some(e) = r_env {
+            let mut n_env = e;
+            let mut list = NekoType::list(args);
+            let result = eval(list,&mut n_env);
+            match result.get_value() {
+                NekoList(mut l) => {
+                    if l.len() == 1 {
+                        return l.remove(0);
+                    } else {
+                        return result;
+                    }
+                }
+                _ => {return result}
+            }
+        }
+    };
+    return NekoType::err("let的绑定不合规".to_string());
+}
+
+fn let_set_bindings(mut args:Vec<NekoType>,env:&mut Env) -> Option<&mut Env> {
+    let mut first_arg = args.remove(0);
+    match first_arg.get_value() {
+        NekoList(mut b) => {
+            return let_set_bindings(b,env);
+        },
+        NekoSymbol(s) => {
+            if args.len() != 1 {
+                return None;
+            } else {
+                let mut secend_arg = args.remove(0);
+                let mut n = eval(secend_arg,env);
+                env.set(s,n);
+                return Some(env)
+            }
+        },
+        _ => {None}
+    }
 }
