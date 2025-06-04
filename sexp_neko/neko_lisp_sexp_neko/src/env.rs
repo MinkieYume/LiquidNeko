@@ -18,14 +18,14 @@ pub struct EnvType {
 pub struct Env(Rc<RefCell<EnvType>>);
 
 impl Env {
-    pub fn new(outer:Option<&Env>) -> Env {
+    pub fn new(outer:Option<Env>) -> Env {
         Env(Rc::new(RefCell::new(EnvType {
             outer: outer.map(|e| e.clone()),
             data: HashMap::new(),
         })))
     }
 
-    pub fn with_bindings(outer:Option<&Env>,mut bindings:HashMap<Symbol, NekoType>) -> Env {
+    pub fn with_bindings(outer:Option<Env>,mut bindings:HashMap<Symbol, NekoType>) -> Env {
         let mut env = Env(Rc::new(RefCell::new(EnvType {
             outer: outer.map(|e| e.clone()),
             data: HashMap::new(),

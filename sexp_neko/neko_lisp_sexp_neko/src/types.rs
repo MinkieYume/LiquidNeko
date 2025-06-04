@@ -33,7 +33,7 @@ pub struct NekoType(pub Rc<NekoValue>);
 #[derive(Clone)]
 pub enum Function {
     Lambda(Rc<Box<dyn Fn(Vec<NekoType>) -> NekoType>>),
-    SpecialForms(Rc<Box<dyn Fn(Vec<NekoType>,&mut Env) -> NekoType>>)
+    SpecialForms(Rc<Box<dyn Fn(Vec<NekoType>,Env) -> NekoType>>)
 }
 
 impl NekoType {
@@ -233,7 +233,7 @@ impl Function {
         }
     }
 
-    pub fn call_s(&self,v:Vec<NekoType>,e:&mut Env) -> NekoType {
+    pub fn call_s(&self,v:Vec<NekoType>,e:Env) -> NekoType {
         if let SpecialForms(l) = self {
             (*l)(v,e)
         } else {

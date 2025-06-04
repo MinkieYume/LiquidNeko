@@ -8,14 +8,14 @@ use crate::types::Symbol;
 use crate::symbols::Symbols;
 use crate::env::Env;
 
-pub fn eval_ast(mut n:NekoType,env:&mut Env) -> NekoType {
+pub fn eval_ast(mut n:NekoType,env:Env) -> NekoType {
     //对单个参数进行求值
     match n.get_ref().borrow() {
         NekoSymbol(s) => {env.get(&s)},
         NekoList(v) => {
             let mut nv:Vec<NekoType> = Vec::new();
             for e in v {
-                let mut ne = eval(e.clone(),env);
+                let mut ne = eval(e.clone(),env.clone());
                 nv.push(ne);
             }
             NekoType::list(nv)
@@ -24,7 +24,7 @@ pub fn eval_ast(mut n:NekoType,env:&mut Env) -> NekoType {
     }
 }
 
-pub fn eval(mut n:NekoType,env:&mut Env) -> NekoType {
+pub fn eval(mut n:NekoType,env:Env) -> NekoType {
     //对参数进行判定并决定是否执行或应用
     match n.get_ref().borrow() {
         NekoList(v) => {
@@ -38,7 +38,7 @@ pub fn eval(mut n:NekoType,env:&mut Env) -> NekoType {
     }
 }
 
-pub fn apply(mut list:NekoType,env:&mut Env) -> NekoType {
+pub fn apply(mut list:NekoType,env:Env) -> NekoType {
     //对列表执行求值与应用操作
     if let NekoList(mut v) = list.copy_value() {
         let mut first_arg = v.remove(0);
@@ -56,13 +56,13 @@ pub fn apply(mut list:NekoType,env:&mut Env) -> NekoType {
             },
             NekoSymbol(_) => {
                 let mut nfn
-                    = eval_ast(first_arg.clone(),env);
+                    = eval_ast(first_arg.clone(),env.clone());
                 if let NekoFn(f) = nfn.copy_value() {
                     if f.is_special() {
-                        return f.call_s(args,env);
+                        return f.call_s(args,env.clone());
                     }
                 }
-                return apply(eval_ast(list,env),env);
+                return apply(eval_ast(list,env.clone()),env.clone());
             },
             _ => {return list},
         };
