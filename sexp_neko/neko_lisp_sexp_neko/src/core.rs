@@ -45,6 +45,11 @@ impl Core {
                 Box::new(|v,e| if_(v,e))));
         binds.insert(Symbol("if".to_string()),
                      NekoType::func(if_));
+        let progn =
+            SpecialForms(Rc::new(
+                Box::new(|v,e| progn(v,e))));
+        binds.insert(Symbol("progn".to_string()),
+                     NekoType::func(progn));
         Core{
             binddings:binds,
         }
@@ -190,21 +195,29 @@ fn if_(mut args:Vec<NekoType>,env:&mut Env) -> NekoType {
     if args.len() >= 2 && args.len() <= 3 {
         let mut arg = args.get(0).
             unwrap_or(&NekoType::nil()).clone();
-        let condition = eval_ast(arg.clone(),env);
+        let condition = eval(arg.clone(),env);
         if let NekoNil = *condition.get_ref() {
             if args.len() == 3 {
                 let mut arg3 = args.get(2).
                     unwrap_or(&NekoType::nil()).clone();
-                eval_ast(arg3.clone(),env)
+                eval(arg3.clone(),env)
             } else {
                 NekoType::nil()
             }
         } else {
             let mut arg2 = args.get(1).
                 unwrap_or(&NekoType::nil()).clone();
-            eval_ast(arg2.clone(),env)
+            eval(arg2.clone(),env)
         }
     } else {
         NekoType::err("不合法的if语句".to_string())
     }
+}
+
+fn progn(mut args:Vec<NekoType>,env:&mut Env) -> NekoType {
+    let mut result = NekoType::nil();
+    for arg in args {
+        result = eval(arg,env);
+    }
+    return result;
 }
