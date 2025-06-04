@@ -21,5 +21,5 @@
 将Error进行分类，映射到为多个不同的Error类型，并允许用户自定义自己的Error类型。
 ** TODO 实现更多自定义字段功能
 比如true，false和nil的显示字段，错误字段的环境自定义等。
-** TODO 实现if fn和do
+** DONE 实现if fn和do
 ** TODO BUGFIX：fn环境不对
