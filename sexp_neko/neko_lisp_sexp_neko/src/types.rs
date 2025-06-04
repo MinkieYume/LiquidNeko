@@ -248,6 +248,7 @@ impl Function {
     }
 
     fn call_ast(&self,mut args:Vec<NekoType>,env:Env) -> NekoType {
+        //BUGFIX：环境输入不对
         let mut unwrap = self.ast.as_ref().unwrap();
         let mut ast = unwrap.clone();
         let mut n_env = Env::new(Some(env.clone()));

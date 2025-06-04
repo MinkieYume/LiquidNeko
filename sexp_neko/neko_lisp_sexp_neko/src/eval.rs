@@ -54,7 +54,7 @@ pub fn apply(mut list:NekoType,env:Env) -> NekoType {
                     return NekoType::err("不可在此调用特殊形式".to_string());
                 }
             },
-            NekoSymbol(_) => {
+            NekoList(_)|NekoSymbol(_) => {
                 let mut nfn
                     = eval_ast(first_arg.clone(),env.clone());
                 if let NekoFn(f) = nfn.copy_value() {
