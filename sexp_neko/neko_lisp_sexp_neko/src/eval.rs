@@ -40,13 +40,13 @@ pub fn eval(mut n:NekoType,env:&mut Env) -> NekoType {
 
 pub fn apply(mut list:NekoType,env:&mut Env) -> NekoType {
     //对列表执行求值与应用操作
-    if let NekoList(mut v) = list.get_value() {
+    if let NekoList(mut v) = list.copy_value() {
         let mut first_arg = v.remove(0);
         let mut args:Vec<NekoType> = Vec::new();
         for cn in v {
             args.push(cn);
         };
-        match first_arg.get_value() {
+        match first_arg.copy_value() {
             NekoFn(f) => {
                 if f.is_lambda(){
                     return f.call_l(args);
@@ -57,7 +57,7 @@ pub fn apply(mut list:NekoType,env:&mut Env) -> NekoType {
             NekoSymbol(_) => {
                 let mut nfn
                     = eval_ast(first_arg.clone(),env);
-                if let NekoFn(f) = nfn.get_value() {
+                if let NekoFn(f) = nfn.copy_value() {
                     if f.is_special() {
                         return f.call_s(args,env);
                     }

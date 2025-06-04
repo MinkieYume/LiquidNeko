@@ -3,7 +3,7 @@ use core::ops::{Add,Sub,Mul,Div,Fn,Deref};
 use core::cmp::{Eq,PartialEq};
 use core::mem::discriminant;
 use core::cell::RefCell;
-use std::borrow::Borrow;
+use std::borrow::{Borrow, BorrowMut};
 use NekoValue::*;
 use Function::*;
 use crate::env::Env;
@@ -195,12 +195,12 @@ impl NekoType {
         }
     }
 
-    pub fn get_value(&self) -> NekoValue {
-        return (*self.0).clone()
+    pub fn copy_value(&self) -> NekoValue {
+        return (*self.0).clone();
     }
 
     pub fn get_ref(&self) -> Rc<NekoValue> {
-        return self.0.clone()
+        return self.0.clone();
     }
 }
 
@@ -246,38 +246,38 @@ impl Add for NekoType {
     type Output = Self;
     
     fn add(self, other: Self) -> Self {
-        match self.get_value() {
+        match self.copy_value() {
             NekoList(mut a) => {
-                if let NekoList(mut b) = other.get_value() {
+                if let NekoList(mut b) = other.copy_value() {
                     a.append(&mut b);
                     return Self::list(a);
                 }
             },
             NekoSymbol(a) => {
-                if let NekoSymbol(b) = other.get_value() {
+                if let NekoSymbol(b) = other.copy_value() {
                     let mut c = a.val();
                     c.push_str(b.val().as_str());
                     return Self::symbol(c);
                 }
             },
             Nekoi64(a) => {
-                if let Nekoi64(b) = other.get_value() {
+                if let Nekoi64(b) = other.copy_value() {
                     return Self::int_64(a+b);
                 }
             },
             Nekof64(a) => {
-                if let Nekof64(b) = other.get_value() {
+                if let Nekof64(b) = other.copy_value() {
                     return Self::float_64(a+b);
                 }
             },
             NekoString(mut a) => {
-                if let NekoString(b) = other.get_value() {
+                if let NekoString(b) = other.copy_value() {
                     a.push_str(b.as_str());
                     return Self::string(a);
                 }
             },
             NekoKeyword(mut a) => {
-                if let NekoKeyword(b) =  other.get_value() {
+                if let NekoKeyword(b) =  other.copy_value() {
                     a.push_str(b.as_str());
                     return Self::keyword(a);
                 }
@@ -292,14 +292,14 @@ impl Sub for NekoType {
         type Output = Self;
     
     fn sub(self, other: Self) -> Self {
-        match self.get_value() {
+        match self.copy_value() {
             Nekoi64(a) => {
-                if let Nekoi64(b) = other.get_value() {
+                if let Nekoi64(b) = other.copy_value() {
                     return Self::int_64(a-b);
                 }
             },
             Nekof64(a) => {
-                if let Nekof64(b) = other.get_value() {
+                if let Nekof64(b) = other.copy_value() {
                     return Self::float_64(a-b);
                 }
             },
@@ -313,14 +313,14 @@ impl Mul for NekoType {
         type Output = Self;
     
     fn mul(self, other: Self) -> Self {
-        match self.get_value() {
+        match self.copy_value() {
             Nekoi64(a) => {
-                if let Nekoi64(b) = other.get_value() {
+                if let Nekoi64(b) = other.copy_value() {
                     return Self::int_64(a*b);
                 }
             },
             Nekof64(a) => {
-                if let Nekof64(b) = other.get_value() {
+                if let Nekof64(b) = other.copy_value() {
                     return Self::float_64(a*b);
                 }
             },
@@ -334,9 +334,9 @@ impl Div for NekoType {
     type Output = Self;
     
     fn div(self, other: Self) -> Self {
-        match self.get_value() {
+        match self.copy_value() {
             Nekoi64(a) => {
-                if let Nekoi64(b) = other.get_value() {
+                if let Nekoi64(b) = other.copy_value() {
                     if b == 0 {
                         return Self::err("0不能被除".to_string());
                     } else {
@@ -347,7 +347,7 @@ impl Div for NekoType {
                             return Self::int_64(c as i64);
                         }
                     }
-                } else if let Nekof64(b) = other.get_value() {
+                } else if let Nekof64(b) = other.copy_value() {
                     if b == 0.0 {
                         return Self::err("0不能被除".to_string());
                     } else {
@@ -361,13 +361,13 @@ impl Div for NekoType {
                 }
             },
             Nekof64(a) => {
-                if let Nekof64(b) = other.get_value() {
+                if let Nekof64(b) = other.copy_value() {
                     if b == 0.0 {
                         return Self::err("0不能被除".to_string());
                     } else {
                         return Self::float_64(a/b);
                     }
-                } else if let Nekoi64(b) = other.get_value() {
+                } else if let Nekoi64(b) = other.copy_value() {
                     if b == 0 {
                         return Self::err("0不能被除".to_string());
                     } else {

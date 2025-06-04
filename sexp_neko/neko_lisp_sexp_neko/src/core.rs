@@ -1,3 +1,5 @@
+use std::borrow::Borrow;
+
 use alloc::{boxed::Box,string::String, vec::Vec,rc::Rc};
 use hashbrown::HashMap;
 use crate::types::Symbol;
@@ -7,6 +9,7 @@ use crate::types::NekoValue::*;
 use crate::types::Function;
 use crate::types::Function::*;
 use crate::env::Env;
+use crate::eval::*;
 
 pub struct Core {
     pub binddings:HashMap<Symbol, NekoType>
@@ -35,8 +38,13 @@ impl Core {
         let let_ =
             SpecialForms(Rc::new(
                 Box::new(|v,e| let_(v,e))));
-        binds.insert(Symbol("/".to_string()),
+        binds.insert(Symbol("let".to_string()),
                      NekoType::func(let_));
+        let if_ =
+            SpecialForms(Rc::new(
+                Box::new(|v,e| if_(v,e))));
+        binds.insert(Symbol("if".to_string()),
+                     NekoType::func(if_));
         Core{
             binddings:binds,
         }
@@ -96,8 +104,8 @@ fn def(mut args:Vec<NekoType>,env:&mut Env) -> NekoType {
         let mut last_arg = NekoType::nil();
         let mut result_args:Vec<NekoType> = Vec::new();
         for arg in args {
-            if let NekoSymbol(a) = last_arg.get_value() {
-                let new_val = crate::eval::eval(arg,env);
+            if let NekoSymbol(a) = last_arg.copy_value() {
+                let new_val = eval(arg,env);
                 env.set(a,new_val.clone());
                 result_args.push(new_val.clone());
                 last_arg = NekoType::nil();
@@ -118,13 +126,13 @@ fn def(mut args:Vec<NekoType>,env:&mut Env) -> NekoType {
 fn let_(mut args:Vec<NekoType>,env:&mut Env) -> NekoType {
     let mut bindings = args.remove(0);
     let mut n_env = Env::new(Some(&env));
-    if let NekoList(bs) = bindings.get_value() {
+    if let NekoList(bs) = bindings.copy_value() {
         let mut r_env = let_set_bindings(bs,&mut n_env);
         if let Some(e) = r_env {
             let mut n_env = e;
             let mut list = NekoType::list(args);
-            let result = crate::eval::eval(list,&mut n_env);
-            match result.get_value() {
+            let result = eval(list,&mut n_env);
+            match result.copy_value() {
                 NekoList(mut l) => {
                     if l.len() == 1 {
                         return l.remove(0);
@@ -141,14 +149,14 @@ fn let_(mut args:Vec<NekoType>,env:&mut Env) -> NekoType {
 
 fn let_set_bindings(mut args:Vec<NekoType>,env:&mut Env) -> Option<&mut Env> {
     let mut first_arg = args.remove(0);
-    match first_arg.get_value() {
+    match first_arg.copy_value() {
         NekoList(mut b) => {
             let mut n_env = env;
             let mut oenv = let_set_bindings(b,n_env);
             if let Some(e) = oenv{
                 n_env = e;
                 for arg in args {
-                    if let NekoList(ab) = arg.get_value() {
+                    if let NekoList(ab) = arg.copy_value() {
                         let mut n_oenv =
                             let_set_bindings(ab,n_env);
                         if let Some(ne) = n_oenv {
@@ -169,11 +177,34 @@ fn let_set_bindings(mut args:Vec<NekoType>,env:&mut Env) -> Option<&mut Env> {
                 return None;
             } else {
                 let mut secend_arg = args.remove(0);
-                let mut n = crate::eval::eval(secend_arg,env);
+                let mut n = eval(secend_arg,env);
                 env.set(s,n);
                 return Some(env)
             }
         },
         _ => {None}
+    }
+}
+
+fn if_(mut args:Vec<NekoType>,env:&mut Env) -> NekoType {
+    if args.len() >= 2 && args.len() <= 3 {
+        let mut arg = args.get(0).
+            unwrap_or(&NekoType::nil()).clone();
+        let condition = eval_ast(arg.clone(),env);
+        if let NekoNil = *condition.get_ref() {
+            if args.len() == 3 {
+                let mut arg3 = args.get(2).
+                    unwrap_or(&NekoType::nil()).clone();
+                eval_ast(arg3.clone(),env)
+            } else {
+                NekoType::nil()
+            }
+        } else {
+            let mut arg2 = args.get(1).
+                unwrap_or(&NekoType::nil()).clone();
+            eval_ast(arg2.clone(),env)
+        }
+    } else {
+        NekoType::err("不合法的if语句".to_string())
     }
 }
