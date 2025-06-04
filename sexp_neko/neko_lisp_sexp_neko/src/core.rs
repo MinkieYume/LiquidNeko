@@ -3,12 +3,12 @@ use core::cell::RefCell;
 use hashbrown::HashMap;
 use crate::types::Symbol;
 use crate::types::NekoType;
+use crate::types::Function;
 use crate::types::NekoValue;
 use crate::types::NekoValue::*;
-use crate::types::Function;
-use crate::types::Function::*;
 use crate::env::Env;
 use crate::eval::*;
+use crate::printer::*;
 
 pub struct Core {
     pub binddings:HashMap<Symbol, NekoType>
@@ -18,40 +18,40 @@ impl Core {
     pub fn default() -> Core {
         let mut binds:HashMap<Symbol, NekoType> = HashMap::new();
         let add =
-            Lambda(Rc::new(Box::new(|v| add_v(v))));
+            Function::new_box(Rc::new(Box::new(|v,e| add_v(v))),"ADD",false);
         binds.insert(Symbol("+".to_string()),NekoType::func(add));
         let sub =
-            Lambda(Rc::new(Box::new(|v| sub_v(v))));
+            Function::new_box(Rc::new(Box::new(|v,e| sub_v(v))),"SUB",false);
         binds.insert(Symbol("-".to_string()),NekoType::func(sub));
         let mul =
-            Lambda(Rc::new(Box::new(|v| mul_v(v))));
+            Function::new_box(Rc::new(Box::new(|v,e| mul_v(v))),"MUL",false);
         binds.insert(Symbol("*".to_string()),NekoType::func(mul));
         let div =
-            Lambda(Rc::new(Box::new(|v| div_v(v))));
+            Function::new_box(Rc::new(Box::new(|v,e| div_v(v))),"DIV",false);
         binds.insert(Symbol("/".to_string()),NekoType::func(div));
         let def =
-            SpecialForms(Rc::new(
-                Box::new(|v,e| def(v,e))));
+            Function::new_box(Rc::new(
+                Box::new(|v,e| def(v,e))),"DEF",true);
         binds.insert(Symbol("def!".to_string()),
                      NekoType::func(def));
         let let_ =
-            SpecialForms(Rc::new(
-                Box::new(|v,e| let_(v,e))));
+            Function::new_box(Rc::new(
+                Box::new(|v,e| let_(v,e))),"LET",true);
         binds.insert(Symbol("let".to_string()),
                      NekoType::func(let_));
         let if_ =
-            SpecialForms(Rc::new(
-                Box::new(|v,e| if_(v,e))));
+            Function::new_box(Rc::new(
+                Box::new(|v,e| if_(v,e))),"IF",true);
         binds.insert(Symbol("if".to_string()),
                      NekoType::func(if_));
         let progn =
-            SpecialForms(Rc::new(
-                Box::new(|v,e| progn(v,e))));
+            Function::new_box(Rc::new(
+                Box::new(|v,e| progn(v,e))),"PROGN",true);
         binds.insert(Symbol("progn".to_string()),
                      NekoType::func(progn));
         let lambda =
-            SpecialForms(Rc::new(
-                Box::new(|v,e| lambda(v,e))));
+            Function::new_box(Rc::new(
+                Box::new(|v,e| lambda(v,e))),"LAMBDA",true);
         binds.insert(Symbol("lambda".to_string()),
                      NekoType::func(lambda));
         Core{
@@ -237,35 +237,11 @@ fn lambda(mut args:Vec<NekoType>,env:Env) -> NekoType {
     } else {
         return NekoType::err("必须项不存在".to_string())
     }
-    let packed_env = Rc::new(env.clone());
-    let packed_ast = Rc::new(RefCell::new(args));
-    let mut f = Lambda(
-        Rc::new(Box::new(
-            move |v| func(v,
-                     packed_env.clone(),
-                     packed_ast.clone()))));
+    let mut prlist:Vec<NekoType> = Vec::new();
+    prlist.push(NekoType::symbol("FUNCTION".to_string()));
+    prlist.append(&mut args.clone());
+    let mut pralist = NekoType::list(prlist);
+    let mut f = Function::
+    new_ast(args,pr_str(pralist).as_str(),false);
     return NekoType::func(f);
-}
-
-fn func(mut args:Vec<NekoType>,env:Rc<Env>,
-        mut oast:Rc<RefCell<Vec<NekoType>>>) -> NekoType {
-    let mut ast = oast.borrow_mut().clone();
-    let mut n_env = Env::new(Some((*env).clone()));
-    let mut params = ast.remove(0);
-    if let NekoList(v) = params.copy_value() {
-        if v.len() != ast.len() {
-            return NekoType::err("输入参数不对".to_string());
-        }
-        for p in v {
-            if let NekoSymbol(s) = p.copy_value() {
-                let val = args.remove(0);
-                n_env.set(s.clone(),val);
-            }
-        }
-    }
-    let mut result:NekoType = NekoType::nil();
-    for body in ast {
-        result = eval(body,n_env.clone());
-    }
-    return result;
 }

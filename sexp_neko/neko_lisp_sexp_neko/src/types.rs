@@ -3,10 +3,9 @@ use core::ops::{Add,Sub,Mul,Div,Fn,Deref};
 use core::cmp::{Eq,PartialEq};
 use core::mem::discriminant;
 use core::cell::RefCell;
-use std::borrow::{Borrow, BorrowMut};
 use NekoValue::*;
-use Function::*;
 use crate::env::Env;
+use crate::eval::*;
 
 #[derive(Clone)]
 pub enum NekoValue {
@@ -31,9 +30,12 @@ pub struct Symbol(pub String);
 pub struct NekoType(pub Rc<NekoValue>);
 
 #[derive(Clone)]
-pub enum Function {
-    Lambda(Rc<Box<dyn Fn(Vec<NekoType>) -> NekoType>>),
-    SpecialForms(Rc<Box<dyn Fn(Vec<NekoType>,Env) -> NekoType>>)
+pub struct Function {
+    boxed:Option<Rc<Box<dyn Fn(Vec<NekoType>,Env) -> NekoType>>>,
+    ast:Option<Vec<NekoType>>,
+    is_box:bool,
+    is_special_form:bool,
+    print:String,
 }
 
 impl NekoType {
@@ -211,33 +213,70 @@ impl Symbol {
 }
 
 impl Function {
-    pub fn is_lambda(&self) -> bool{
-        match self {
-            Lambda(_) => true,
-            _ => false,
+    pub fn is_special(&self) -> bool{
+        return self.is_special_form
+    }
+
+    pub fn is_box(&self) -> bool {
+        return self.is_box
+    }
+
+    pub fn new_box(_box:Rc<Box<dyn Fn
+                                   (Vec<NekoType>,Env) -> NekoType>>,
+    pr:&str,special:bool) -> Function {
+        Function {
+            boxed:Some(_box),
+            ast:None,
+            is_box:true,
+            is_special_form:special,
+            print:pr.to_string(),
         }
     }
 
-    pub fn is_special(&self) -> bool{
-        match self {
-            SpecialForms(_) => true,
-            _ => false,
+    pub fn print(&self) -> &str {
+        return self.print.as_str()
+    }
+
+    pub fn new_ast(_ast:Vec<NekoType>,pr:&str,special:bool) -> Function {
+        Function {
+            boxed:None,
+            ast:Some(_ast),
+            is_box:false,
+            is_special_form:special,
+            print:pr.to_string(),
         }
+    }
+
+    fn call_ast(&self,mut args:Vec<NekoType>,env:Env) -> NekoType {
+        let mut unwrap = self.ast.as_ref().unwrap();
+        let mut ast = unwrap.clone();
+        let mut n_env = Env::new(Some(env.clone()));
+        let mut params = ast.remove(0);
+        if let NekoList(v) = params.copy_value() {
+            if v.len() != ast.len() {
+                return NekoType::err("输入参数不对".to_string());
+            }
+            for p in v {
+                if let NekoSymbol(s) = p.copy_value() {
+                    let val = args.remove(0);
+                    n_env.set(s.clone(),val);
+                }
+            }
+        }
+        let mut result:NekoType = NekoType::nil();
+        for body in ast {
+            result = eval(body,n_env.clone());
+        }
+        return result;
     }
     
-    pub fn call_l(&self,v:Vec<NekoType>) -> NekoType {
-        if let Lambda(l) = self {
-            (*l)(v)
+    pub fn call(&self,v:Vec<NekoType>,e:Env) -> NekoType {
+        if self.is_box() {
+            let mut l =
+                self.boxed.as_ref().unwrap();
+            (*l)(v,e.clone())
         } else {
-            NekoType::err("无法调用该函数".to_string())
-        }
-    }
-
-    pub fn call_s(&self,v:Vec<NekoType>,e:Env) -> NekoType {
-        if let SpecialForms(l) = self {
-            (*l)(v,e)
-        } else {
-            NekoType::err("无法调用该函数".to_string())
+            self.call_ast(v,e.clone())
         }
     }
 }

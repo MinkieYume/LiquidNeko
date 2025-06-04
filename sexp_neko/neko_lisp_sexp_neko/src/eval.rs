@@ -48,10 +48,10 @@ pub fn apply(mut list:NekoType,env:Env) -> NekoType {
         };
         match first_arg.copy_value() {
             NekoFn(f) => {
-                if f.is_lambda(){
-                    return f.call_l(args);
+                if !f.is_special(){
+                    return f.call(args,env.clone());
                 } else {
-                    return NekoType::err("不可调用函数".to_string());
+                    return NekoType::err("不可在此调用特殊形式".to_string());
                 }
             },
             NekoSymbol(_) => {
@@ -59,7 +59,7 @@ pub fn apply(mut list:NekoType,env:Env) -> NekoType {
                     = eval_ast(first_arg.clone(),env.clone());
                 if let NekoFn(f) = nfn.copy_value() {
                     if f.is_special() {
-                        return f.call_s(args,env.clone());
+                        return f.call(args,env.clone());
                     }
                 }
                 return apply(eval_ast(list,env.clone()),env.clone());

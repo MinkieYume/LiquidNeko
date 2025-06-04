@@ -17,6 +17,7 @@ pub fn pr_str(neko:NekoType) -> String {
         NekoTrue => {output = "T".to_string();},
         NekoKeyword(k) => {output = k.clone()},
         NekoErr(e) => {write!(&mut output,"Error: {}", e.clone());},
+        NekoFn(f) => {write!(&mut output,"#<{}>", f.print());}
         NekoList(v) => {
             let mut sv:Vec<String> = Vec::new();
             for n in v {
