@@ -26,15 +26,27 @@ pub fn eval_ast(mut n:NekoType,env:Env) -> NekoType {
 
 pub fn eval(mut n:NekoType,env:Env) -> NekoType {
     //对参数进行判定并决定是否执行或应用
-    match n.get_ref().borrow() {
-        NekoList(v) => {
-            if !v.is_empty() {                
-                apply(n,env)
-            } else {
-                n
-            }
-        },
-        _ => eval_ast(n,env)
+    let mut result = NekoType::nil();
+    let mut v_n = n.clone();
+    let mut v_env = env.clone();
+    loop {
+        match v_n.get_ref().borrow() {
+            NekoList(v) => {
+                if !v.is_empty() {
+                    result = apply(v_n,v_env.clone());
+                } else {
+                    result = v_n;
+                }
+            },
+            _ => {result = eval_ast(v_n,v_env.clone());}
+        }
+        if let Some(tco) = v_env.get_tco() {
+            v_env = tco.clone();
+            v_n = result.clone();
+            v_env.clear_tco();
+        } else {
+            return result;
+        }
     }
 }
 

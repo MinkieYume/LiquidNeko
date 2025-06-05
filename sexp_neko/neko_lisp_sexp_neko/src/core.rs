@@ -140,17 +140,8 @@ fn let_(mut args:Vec<NekoType>,env:Env) -> NekoType {
         if let Some(e) = r_env {
             let mut n_env = e;
             let mut list = NekoType::list(args);
-            let result = eval(list,n_env.clone());
-            match result.copy_value() {
-                NekoList(mut l) => {
-                    if l.len() == 1 {
-                        return l.remove(0);
-                    } else {
-                        return result;
-                    }
-                }
-                _ => {return result}
-            }
+            env.set_tco(n_env.clone());
+            return list;
         }
     };
     return NekoType::err("let的绑定不合规".to_string());
@@ -186,7 +177,7 @@ fn let_set_bindings(mut args:Vec<NekoType>,env:Env) -> Option<Env> {
                 return None;
             } else {
                 let mut secend_arg = args.remove(0);
-                let mut n = eval(secend_arg,env.clone());
+                let mut n = eval_ast(secend_arg,env.clone());
                 env.set(s,n);
                 return Some(env)
             }
@@ -204,14 +195,16 @@ fn if_(mut args:Vec<NekoType>,env:Env) -> NekoType {
             if args.len() == 3 {
                 let mut arg3 = args.get(2).
                     unwrap_or(&NekoType::nil()).clone();
-                eval(arg3.clone(),env.clone())
+                env.set_tco(env.clone());
+                return arg3.clone();
             } else {
                 NekoType::nil()
             }
         } else {
             let mut arg2 = args.get(1).
                 unwrap_or(&NekoType::nil()).clone();
-            eval(arg2.clone(),env)
+            env.set_tco(env.clone());
+            return arg2.clone();
         }
     } else {
         NekoType::err("不合法的if语句".to_string())

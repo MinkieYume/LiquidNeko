@@ -12,6 +12,7 @@ use crate::types::Function;
 pub struct EnvType {
     pub outer: Option<Env>,
     pub data: HashMap<Symbol, NekoType>,
+    pub tco:Option<Env>
 }
 
 #[derive(Clone)]
@@ -22,6 +23,7 @@ impl Env {
         Env(Rc::new(RefCell::new(EnvType {
             outer: outer.map(|e| e.clone()),
             data: HashMap::new(),
+            tco:None,
         })))
     }
 
@@ -29,6 +31,7 @@ impl Env {
         let mut env = Env(Rc::new(RefCell::new(EnvType {
             outer: outer.map(|e| e.clone()),
             data: HashMap::new(),
+            tco:None,
         })));
         let keys = bindings.keys();
         for bind in keys {
@@ -43,6 +46,18 @@ impl Env {
     pub fn default() -> Env {
         let core = Core::default();
         Env::with_bindings(None,core.binddings)
+    }
+
+    pub fn set_tco(&self,tco_env:Env) {
+        self.0.borrow_mut().tco = Some(tco_env.clone());
+    }
+
+    pub fn clear_tco(&self) {
+        self.0.borrow_mut().tco = None;
+    }
+
+    pub fn get_tco(&self) -> Option<Env> {
+        self.0.borrow().tco.clone()
     }
 
     pub fn set(&self,key:Symbol, val: NekoType) {
