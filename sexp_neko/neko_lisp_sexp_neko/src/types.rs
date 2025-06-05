@@ -267,11 +267,14 @@ impl Function {
                     n_env.set(s.clone(),val);
                 }
             }
-        }
-        let mut result:NekoType = NekoType::nil();
-        for body in ast {
-            result = eval(body,n_env.clone());
-        }
+        };
+        let mut progn = NekoType::symbol("progn".to_string());
+        ast.insert(0,progn);
+        let mut result = NekoType::list(ast);
+        env.set_tco(n_env.clone());
+//        for body in ast {
+//            result = eval(body,n_env.clone());
+//        }
         return result;
     }
     
