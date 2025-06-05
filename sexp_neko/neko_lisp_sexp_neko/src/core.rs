@@ -214,7 +214,7 @@ fn if_(mut args:Vec<NekoType>,env:Env) -> NekoType {
 fn progn(mut args:Vec<NekoType>,env:Env) -> NekoType {
     let mut result = NekoType::nil();
     let mut arg = args.remove(0);
-    result = eval_ast(arg,env.clone());
+    result = eval(arg,env.clone());
     if args.len() > 0 {
         let mut progn_fn = NekoType::symbol("progn".to_string());
         env.set_tco(env.clone());
