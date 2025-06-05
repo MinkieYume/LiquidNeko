@@ -213,10 +213,16 @@ fn if_(mut args:Vec<NekoType>,env:Env) -> NekoType {
 
 fn progn(mut args:Vec<NekoType>,env:Env) -> NekoType {
     let mut result = NekoType::nil();
-    for arg in args {
-        result = eval(arg,env.clone());
+    let mut arg = args.remove(0);
+    result = eval_ast(arg,env.clone());
+    if args.len() > 0 {
+        let mut progn_fn = NekoType::symbol("progn".to_string());
+        env.set_tco(env.clone());
+        args.insert(0,progn_fn);
+        return NekoType::list(args);
+    } else {
+        return result;
     }
-    return result;
 }
 
 
