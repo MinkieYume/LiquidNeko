@@ -6,6 +6,7 @@ use core::cell::RefCell;
 use NekoValue::*;
 use crate::env::Env;
 use crate::eval::*;
+use crate::printer::pr_str;
 
 #[derive(Clone)]
 pub enum NekoValue {
@@ -252,13 +253,16 @@ impl Function {
         let mut unwrap = self.ast.as_ref().unwrap();
         let mut ast = unwrap.clone();
         let mut n_env = Env::new(Some(env.clone()));
+        //println!("{}",pr_str(NekoType::list(ast.clone())));
+        //println!("{}",pr_str(NekoType::list(args.clone())));
         let mut params = ast.remove(0);
         if let NekoList(v) = params.copy_value() {
-            if v.len() != ast.len() {
+            if v.len() != args.len() {
                 return NekoType::err("输入参数不对".to_string());
             }
             for p in v {
                 if let NekoSymbol(s) = p.copy_value() {
+                    //println!("{}",pr_str(p.clone()));
                     let val = args.remove(0);
                     n_env.set(s.clone(),val);
                 }
