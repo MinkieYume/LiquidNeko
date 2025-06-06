@@ -1,9 +1,9 @@
 use alloc::{vec::Vec, string::String, boxed::Box ,str::Chars};
 use core::fmt::Write;
+use crate::env::Env;
 use crate::types::NekoType;
 use crate::types::NekoValue;
 use crate::types::NekoValue::*;
-use crate::symbols::Symbols;
 
 pub struct Reader {
     tokens: Vec<String>,
@@ -30,14 +30,15 @@ impl Reader {
     }
 }
 
-pub fn pre_read_str(s:&str,symb:&mut Symbols) -> Vec<String>{
+pub fn pre_read_str(s:&str,env:Env) -> Vec<String>{
     let mut s_chars = s.chars();
-    return pre_read_form(&mut s_chars,symb);
+    return pre_read_form(&mut s_chars,env);
 }
 
-fn pre_read_form(s_chars:&mut Chars<'_>,symb:&mut Symbols) -> Vec<String> {
+fn pre_read_form(s_chars:&mut Chars<'_>,env:Env) -> Vec<String> {
     let mut sexps:Vec<String> = Vec::new();
     let mut sexp = String::new();
+    let symb = env.get_symbol();
     while let Some(c) = s_chars.next() {
         if symb.pair_char(c,"s_exp_begin") {
             if !sexp.is_empty() {
@@ -45,7 +46,7 @@ fn pre_read_form(s_chars:&mut Chars<'_>,symb:&mut Symbols) -> Vec<String> {
                 sexp.clear();
             }
             sexp.push(c);
-            sexp.push_str(pre_read_list(s_chars,symb).as_str());
+            sexp.push_str(pre_read_list(s_chars,env.clone()).as_str());
             sexps.push(sexp.clone());
             sexp.clear();
         } else if symb.pair_char(c,"split") {
@@ -60,12 +61,13 @@ fn pre_read_form(s_chars:&mut Chars<'_>,symb:&mut Symbols) -> Vec<String> {
     return sexps;
 }
 
-fn pre_read_list(s_chars:&mut Chars<'_>,symb:&mut Symbols) -> String {
+fn pre_read_list(s_chars:&mut Chars<'_>,env:Env) -> String {
     let mut sexp = String::new();
+    let symb = env.get_symbol();
     while let Some(c) = s_chars.next() {
         sexp.push(c);
         if symb.pair_char(c,"s_exp_begin") {
-            sexp.push_str(pre_read_list(s_chars,symb).as_str());
+            sexp.push_str(pre_read_list(s_chars,env.clone()).as_str());
         } else if symb.pair_char(c,"s_exp_end") {
             return sexp;
         }
@@ -73,22 +75,23 @@ fn pre_read_list(s_chars:&mut Chars<'_>,symb:&mut Symbols) -> String {
     return sexp;
 }
 
-pub fn read_str(s:&str,symb:&mut Symbols) -> NekoType {
-    let t = tokenize(s,symb);
+pub fn read_str(s:&str,env:Env) -> NekoType {
+    let t = tokenize(s,env.clone());
     if !t.is_empty() {
         let mut r = Reader {
             tokens: t,
             position: 0,
         };
-        read_form(&mut r,symb)
+        read_form(&mut r,env.clone())
     } else {
         NekoType::nil()
     }
 }
-pub fn tokenize(s:&str,symb:&mut Symbols) -> Vec<String> {
+pub fn tokenize(s:&str,env:Env) -> Vec<String> {
     let mut last_tokens:Vec<String> = Vec::new();
     let mut tokens:Vec<String> = Vec::new();
     let mut token:String = String::new();
+    let symb = env.get_symbol();
 
     //循环1,处理空格、逗号、引号、分号与换行
     let mut last_char = ' ';
@@ -238,23 +241,25 @@ pub fn tokenize(s:&str,symb:&mut Symbols) -> Vec<String> {
     return tokens;
 }
 
-pub fn read_form(r:&mut Reader,symb:&mut Symbols) -> NekoType {
+pub fn read_form(r:&mut Reader,env:Env) -> NekoType {
     //解析Sexp表达式形式
+    let symb = env.get_symbol();
     if let Some(c) = r.peek().and_then(|token| token.chars().next()) {
         if let Some(true) = symb.sexp_direction(c) {
-            return read_list(r,symb);
+            return read_list(r,env.clone());
         } else {
-            return read_atom(r,symb);
+            return read_atom(r,env.clone());
         }
     } else {
         return NekoType::nil();
     }
 }
 
-pub fn read_list(r:&mut Reader,symb:&mut Symbols) -> NekoType {
+pub fn read_list(r:&mut Reader,env:Env) -> NekoType {
     //解析Sexp表达式本身
     let mut list:Vec<NekoType> = Vec::new();
     let mut last_s:String = " ".to_string();
+    let symb = env.get_symbol();
     //反复读入元素：
     while let Some(_) = r.next() {
         if let Some(s) = r.peek() {
@@ -264,7 +269,7 @@ pub fn read_list(r:&mut Reader,symb:&mut Symbols) -> NekoType {
             if let Some(false) = symb.sexp_direction(c) {
                 return NekoType::list(list);
             }
-            list.push(read_form(r,symb));
+            list.push(read_form(r,env.clone()));
         } else {
             //错误判定条件与判定循环
             let mut err = String::new();
@@ -291,22 +296,22 @@ pub fn read_list(r:&mut Reader,symb:&mut Symbols) -> NekoType {
     return NekoType::err("Sexp表达式没有结尾".to_string());
 }
 
-pub fn read_atom(r:&mut Reader,symb:&mut Symbols) -> NekoType {
+pub fn read_atom(r:&mut Reader,env:Env) -> NekoType {
     //解析Sexp表达式内容
     if let Some(s) = r.peek() {
-        let result = try_parse(&s,symb);
+        let result = try_parse(&s,env.clone());
         return result.unwrap_or(NekoType::symbol(s));
     } else {
         return NekoType::symbol("解析失败，未知错误".to_string())
     }
 }
 
-fn try_parse(s:&str,symb:&mut Symbols) -> Option<NekoType>{
-    let parsers: Vec<Box<dyn Fn(&str,&mut Symbols) -> Option<NekoType>>> = vec![
-        Box::new(|s,symb| parse_integer(s,symb).map(NekoType::int_64)),
-        Box::new(|s,symb| parse_float(s,symb).map(NekoType::float_64)),
-        Box::new(|s,symb| parse_keyword(s,symb).map(NekoType::keyword)),
-        Box::new(|s,symb| parse_string(s,symb).map(NekoType::string)),
+fn try_parse(s:&str,env:Env) -> Option<NekoType>{
+    let parsers: Vec<Box<dyn Fn(&str,Env) -> Option<NekoType>>> = vec![
+        Box::new(|s,env| parse_integer(s,env.clone()).map(NekoType::int_64)),
+        Box::new(|s,env| parse_float(s,env.clone()).map(NekoType::float_64)),
+        Box::new(|s,env| parse_keyword(s,env.clone()).map(NekoType::keyword)),
+        Box::new(|s,env| parse_string(s,env.clone()).map(NekoType::string)),
     ];
 
     match s {
@@ -320,19 +325,20 @@ fn try_parse(s:&str,symb:&mut Symbols) -> Option<NekoType>{
     }
     
     for parser in parsers {
-        if let Some(val) = parser(s,symb) {
+        if let Some(val) = parser(s,env.clone()) {
             return Some(val);
         }
     }
     None
 }
 
-fn parse_symbol(s: &str,symb:&mut Symbols) -> Option<String> {
+fn parse_symbol(s: &str,env:Env) -> Option<String> {
     None
 }
 
-fn parse_keyword(s: &str,symb:&mut Symbols) -> Option<String> {
+fn parse_keyword(s: &str,env:Env) -> Option<String> {
     if let Some(c) = s.chars().next() {
+        let symb = env.get_symbol();
         if symb.pair_char(c,"keyword") {
             return Some(s.to_string());
         }
@@ -340,8 +346,9 @@ fn parse_keyword(s: &str,symb:&mut Symbols) -> Option<String> {
     None
 }
 
-fn parse_string(s: &str,symb:&mut Symbols) -> Option<String> {
+fn parse_string(s: &str,env:Env) -> Option<String> {
     if let Some(c) = s.chars().next() {
+        let symb = env.get_symbol();
         //第一个字符是引号
         if symb.pair_char(c,"quote_symbol") {
             let mut t =  String::new();
@@ -368,10 +375,10 @@ fn parse_string(s: &str,symb:&mut Symbols) -> Option<String> {
     return None;
 }
 
-fn parse_float(s: &str,symb:&mut Symbols) -> Option<f64> {
+fn parse_float(s: &str,env:Env) -> Option<f64> {
     s.parse::<f64>().ok()
 }
 
-fn parse_integer(s: &str,symb:&mut Symbols) -> Option<i64> {
+fn parse_integer(s: &str,env:Env) -> Option<i64> {
     s.parse::<i64>().ok()
 }

@@ -13,7 +13,6 @@ use crate::symbols::Symbols;
 use crate::env::Env;
 
 fn main() {
-    let mut symbols = Symbols::new();
     let mut env = Env::default();
     loop {
 	let mut input = String::new();
@@ -24,11 +23,11 @@ fn main() {
             println!("\nByeNyan");
             break;
         }
-        let mut strs = reader::pre_read_str(&input,&mut symbols);
+        let mut strs = reader::pre_read_str(&input,env.clone());
         let mut results:Vec<String> = Vec::new();
         //println!("{:?}",&strs);
         for st in strs {
-            let s = rep(st.as_str(),&mut symbols,env.clone());
+            let s = rep(st.as_str(),env.clone());
             results.push(st);
             println!("{}",&s);
         }
@@ -36,20 +35,20 @@ fn main() {
     }
 }
 
-fn READ(mut s:&str,symb:&mut Symbols) -> NekoType {
-    reader::read_str(s,symb)
+fn READ(mut s:&str,env:Env) -> NekoType {
+    reader::read_str(s,env.clone())
 }
 
-fn EVAL(n:NekoType,symb:&mut Symbols,env:Env) -> NekoType {
-    eval::eval(n,env)
+fn EVAL(n:NekoType,env:Env) -> NekoType {
+    eval::eval(n,env.clone())
 }
 
-fn PRINT(n:NekoType,symb:&mut Symbols) -> String {
+fn PRINT(n:NekoType,env:Env) -> String {
     return printer::pr_str(n)
 }
 
-fn rep(mut s:&str,symb:&mut Symbols,env:Env) -> String {
-   let mut n = READ(s,symb);
-    n = EVAL(n,symb,env);
-    return PRINT(n,symb);
+fn rep(mut s:&str,env:Env) -> String {
+   let mut n = READ(s,env.clone());
+    n = EVAL(n,env.clone());
+    return PRINT(n,env.clone());
 }

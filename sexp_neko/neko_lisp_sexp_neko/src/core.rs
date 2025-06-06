@@ -1,5 +1,6 @@
 use alloc::{boxed::Box,string::String, vec::Vec,rc::Rc};
 use core::cell::RefCell;
+use std::borrow::Borrow;
 use hashbrown::HashMap;
 use crate::types::Symbol;
 use crate::types::NekoType;
@@ -29,6 +30,18 @@ impl Core {
         let div =
             Function::new_box(Rc::new(Box::new(|v,e| div_v(v))),"DIV",false);
         binds.insert(Symbol("/".to_string()),NekoType::func(div));
+        let list =
+            Function::new_box(Rc::new(Box::new(|v,e| list(v))),"LIST",false);
+        binds.insert(Symbol("list".to_string()),NekoType::func(list));
+        let listp =
+            Function::new_box(Rc::new(Box::new(|v,e| listp(v))),"LIST?",false);
+        binds.insert(Symbol("list?".to_string()),NekoType::func(listp));
+        let emptyp =
+            Function::new_box(Rc::new(Box::new(|v,e| emptyp(v))),"EMPTY?",false);
+        binds.insert(Symbol("empty".to_string()),NekoType::func(emptyp));
+        let count =
+            Function::new_box(Rc::new(Box::new(|v,e| count(v))),"COUNT",false);
+        binds.insert(Symbol("count?".to_string()),NekoType::func(count));
         let def =
             Function::new_box(Rc::new(
                 Box::new(|v,e| def(v,e))),"DEF",true);
@@ -105,6 +118,45 @@ fn div_v(mut v:Vec<NekoType>) -> NekoType {
             n1=n1/n;
         }
         n1
+    }
+}
+
+fn list(mut v:Vec<NekoType>) -> NekoType {
+    return NekoType::list(v);
+}
+
+fn listp(mut v:Vec<NekoType>) -> NekoType {
+    if v.len() == 1 {
+        let l = v.remove(0);
+        if let NekoList(_) = *l.get_ref(){
+            return NekoType::neko_true();
+        } else {
+            return NekoType::nil();
+        }
+    } else {
+        return NekoType::err("只支持单一参数判定".to_string());
+    }
+}
+
+fn emptyp(mut v:Vec<NekoType>) -> NekoType {
+    let l = v.remove(0);
+    if let NekoList(nv) = l.get_ref().borrow() {
+        if nv.is_empty(){
+            return NekoType::neko_true();
+        } else {
+            return NekoType::nil();
+        }
+    } else {
+        return NekoType::err("参数不是列表".to_string());
+    }
+}
+
+fn count(mut v:Vec<NekoType>) -> NekoType {
+    let l = v.remove(0);
+    if let NekoList(nv) = l.get_ref().borrow() {
+        return NekoType::int_64(nv.len() as i64);
+    } else {
+        return NekoType::err("参数不是列表".to_string());
     }
 }
 
@@ -244,3 +296,4 @@ fn lambda(mut args:Vec<NekoType>,env:Env) -> NekoType {
     new_ast(args,pr_str(pralist).as_str(),false);
     return NekoType::func(f);
 }
+

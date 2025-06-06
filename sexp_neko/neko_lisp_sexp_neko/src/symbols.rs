@@ -1,4 +1,6 @@
-use alloc::{vec::Vec, string::String, boxed::Box};
+use alloc::{vec::Vec, string::String, boxed::Box,rc::Rc};
+use core::cell::RefCell;
+use hashbrown::HashMap;
 use SymbolTypes::*;
 
 use crate::reader::Reader;
@@ -12,38 +14,46 @@ enum SymbolTypes {
     SymbolSpecialChars,
 }
 
+#[derive(Clone)]
 pub struct Symbols {
-    s_exp_begin:SymbolTypes,
-    s_exp_end:SymbolTypes,
-    quote_symbol:SymbolTypes,
-    change_mean:SymbolTypes,
-    comment_begin:SymbolTypes,
-    comment_end:SymbolTypes,
-    marco_symbols:SymbolTypes,
-    marco_str_symbols:SymbolTypes,
-    split_symbols:SymbolTypes,
-    special_symbols:SymbolTypes,
-    keyword:SymbolTypes,
+    data:HashMap<String,SymbolTypes>,
 }
 
-impl Symbols {
-    pub fn new() -> Symbols {
-        Symbols {
-            s_exp_begin : SymbolChar('('),
-            s_exp_end : SymbolChar(')'),
-            quote_symbol : SymbolChar('"'),
-            change_mean : SymbolChar('\\'),
-            comment_begin : SymbolChar(';'),
-            comment_end : SymbolChar('\n'),
-            keyword: SymbolChar(':'),
-            split_symbols : SymbolCharList(vec![' ',',','\n']),
-            marco_symbols : SymbolCharList(vec!['\'','`','~','@','^']),
-            marco_str_symbols : SymbolStrList(vec!["~@".to_string(),"@~".to_string()]),
-            special_symbols : SymbolSpecialChars,
-        }
+#[derive(Clone)]
+pub struct SymbolRef(Rc<RefCell<Symbols>>);
+
+impl SymbolRef {
+    pub fn new() -> SymbolRef {
+        let mut symbolref = SymbolRef(Rc::new(RefCell::new(Symbols::new())));
+        symbolref.set("s_exp_begin",SymbolChar('('));
+        symbolref.set("s_exp_end",SymbolChar(')'));
+        symbolref.set("quote_symbol",SymbolChar('"'));
+        symbolref.set("change_mean",SymbolChar('\\'));
+        symbolref.set("comment_begin",SymbolChar(';'));
+        symbolref.set("comment_end",SymbolChar('\n'));
+        symbolref.set("keyword",SymbolChar(':'));
+        symbolref.set("split",SymbolCharList(vec![' ',',','\n']));
+        symbolref.set("marco_symbols",SymbolCharList(vec!['\'','`','~','@','^']));
+        symbolref.set("marco_str",SymbolStrList(vec!["~@".to_string(),"@~".to_string()]));
+        symbolref.set("special",SymbolSpecialChars);
+        return symbolref;
+        
     }
 
-    pub fn sexp_direction(&mut self,c:char) -> Option<bool> {
+    pub fn set(&self,key:&str,val:SymbolTypes) {
+        self.0.borrow_mut().data.insert(key.to_string(),val);
+    }
+
+    pub fn get(&self,key:&str) -> Option<SymbolTypes>{
+        let s = self.0.borrow();
+        let val = s.data.get(&key.to_string());
+        match val {
+            Some(n) => Some(n.clone()),
+            None => None,
+        }
+    }
+    
+    pub fn sexp_direction(&self,c:char) -> Option<bool> {
         //如果char是sexp符号，则获取方向的判定。
         if self.pair_char(c,"s_exp_begin") {
             Some(true)
@@ -54,26 +64,28 @@ impl Symbols {
         }
     }
 
-    pub fn pair_str(&mut self,s:&str,y:&str) -> bool {
-        match y {
-            "marco_str" => str_pair(s,self.marco_str_symbols.clone()),
-            _ => false,
+    pub fn pair_str(&self,s:&str,y:&str) -> bool {
+        if let Some(symbol) = self.get(y) {
+            str_pair(s,symbol)
+        } else {
+            false
         }
     }
     
-    pub fn pair_char(&mut self,c:char,s:&str) -> bool {
-        match s {
-            "s_exp_begin" => char_pair(c,self.s_exp_begin.clone()),
-            "s_exp_end" => char_pair(c,self.s_exp_end.clone()),
-            "quote_symbol" => char_pair(c,self.quote_symbol.clone()),
-            "change_mean" => char_pair(c,self.change_mean.clone()),
-            "comment_begin" => char_pair(c,self.comment_begin.clone()),
-            "comment_end" => char_pair(c,self.comment_end.clone()),
-            "keyword" => char_pair(c,self.keyword.clone()),
-            "split" => char_pair(c,self.split_symbols.clone()),
-            "special" => char_pair(c,self.special_symbols.clone()),
-            "marco_symbols" => char_pair(c,self.marco_symbols.clone()),
-            _ => false,
+    pub fn pair_char(&self,c:char,s:&str) -> bool {
+        if let Some(symbol) = self.get(s) {
+            char_pair(c,symbol)
+        } else {
+            false
+        }
+    }
+    
+}
+
+impl Symbols {
+    pub fn new() -> Symbols {
+        Symbols {
+            data:HashMap::new()
         }
     }
 }

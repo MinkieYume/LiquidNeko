@@ -1,3 +1,4 @@
+use crate::symbols::SymbolRef;
 use crate::symbols::Symbols;
 use alloc::{boxed::Box,string::String, vec::Vec,rc::Rc};
 use core::cell::RefCell;
@@ -11,6 +12,7 @@ use crate::types::Function;
 #[derive(Clone)]
 pub struct EnvType {
     pub outer: Option<Env>,
+    pub symbols:SymbolRef,
     pub data: HashMap<Symbol, NekoType>,
     pub tco:Option<Env>
 }
@@ -21,15 +23,23 @@ pub struct Env(Rc<RefCell<EnvType>>);
 impl Env {
     pub fn new(outer:Option<Env>) -> Env {
         Env(Rc::new(RefCell::new(EnvType {
-            outer: outer.map(|e| e.clone()),
+            outer: outer.clone().map(|e| e.clone()),
+            symbols:outer.clone().map_or(SymbolRef::new(),
+                                 |e| e.get_symbol()),
             data: HashMap::new(),
             tco:None,
         })))
     }
 
+    pub fn get_symbol(&self) -> SymbolRef {
+        return self.0.borrow().symbols.clone();
+    }
+
     pub fn with_bindings(outer:Option<Env>,mut bindings:HashMap<Symbol, NekoType>) -> Env {
         let mut env = Env(Rc::new(RefCell::new(EnvType {
-            outer: outer.map(|e| e.clone()),
+            outer: outer.clone().map(|e| e.clone()),
+            symbols:outer.clone().map_or(SymbolRef::new(),
+                                 |e| e.get_symbol()),
             data: HashMap::new(),
             tco:None,
         })));
