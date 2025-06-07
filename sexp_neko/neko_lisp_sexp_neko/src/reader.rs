@@ -179,16 +179,16 @@ pub fn tokenize(s:&str,env:Env) -> Vec<String> {
                 token.push(c);
                 tokens.push(token.clone());
                 token.clear();
-            } else if symb.pair_char(c,"marco_symbols") {
+            } else if symb.is_char_reader_marco(c) {
                 //匹配宏符号
-                if !symb.pair_char(last_char,"marco_symbols") && !token.is_empty() {
+                if !symb.is_char_reader_marco(last_char) && !token.is_empty() {
                     tokens.push(token.clone());
                     token.clear();
                 }
                 token.push(c);
             } else {
                 //普通字符处理
-                if symb.pair_char(last_char,"marco_symbols") {
+                if symb.is_char_reader_marco(last_char) {
                     tokens.push(token.clone());
                     token.clear();
                 }
@@ -210,9 +210,10 @@ pub fn tokenize(s:&str,env:Env) -> Vec<String> {
     last_tokens = tokens.clone();
     tokens.clear();
     last_char = ' ';
+
     // 循环3:区分单字符与宏字符组合
     for last_token in last_tokens {
-        if symb.pair_str(&last_token,"marco_str") {
+        if symb.is_str_reader_marco(&last_token) {
             tokens.push(last_token.clone());
         } else {
             let mut pushed = false;
@@ -222,7 +223,7 @@ pub fn tokenize(s:&str,env:Env) -> Vec<String> {
                     tokens.push(last_token.clone());
                     pushed = true;
                     break;
-                } else if symb.pair_char(c,"marco_symbols") {
+                } else if symb.is_char_reader_marco(c) {
                     token.push(c);
                     tokens.push(token.clone());
                     token.clear();
@@ -299,10 +300,35 @@ pub fn read_list(r:&mut Reader,env:Env) -> NekoType {
 pub fn read_atom(r:&mut Reader,env:Env) -> NekoType {
     //解析Sexp表达式内容
     if let Some(s) = r.peek() {
-        let result = try_parse(&s,env.clone());
-        return result.unwrap_or(NekoType::symbol(s));
+        let symbol = env.get_symbol();
+        if symbol.is_str_reader_marco(s.as_str()){
+            return read_reader_marco(r,env.clone());
+        } else{
+            let result = try_parse(&s,env.clone());
+            return result.unwrap_or(NekoType::symbol(s));
+        }
     } else {
         return NekoType::symbol("解析失败，未知错误".to_string())
+    }
+}
+
+pub fn read_reader_marco(r:&mut Reader,env:Env) -> NekoType {
+    let mut list:Vec<NekoType> = Vec::new();
+    let symbol = env.get_symbol();
+    let s = r.next().unwrap();
+    let arg = r.next();
+    if let Some(s_arg) = arg {
+        //println!("{}",s);
+        //println!("{}",s_arg);
+        let marco = symbol.parse_str_reader_marco(s.as_str()).unwrap();
+        list.push(marco);
+        let arg_neko = try_parse(&s_arg,env.clone());
+        let neko = arg_neko.unwrap_or(NekoType::symbol(s_arg.clone()));
+        //println!("{}",neko.get_type_str());
+        list.push(neko);
+        return NekoType::list(list);
+    } else{
+        return NekoType::err("无法解析该reader宏，没有参数".to_string());
     }
 }
 
@@ -322,7 +348,7 @@ fn try_parse(s:&str,env:Env) -> Option<NekoType>{
             return Some(NekoType::neko_true())
         },
         _ => {}
-    }
+    };
     
     for parser in parsers {
         if let Some(val) = parser(s,env.clone()) {

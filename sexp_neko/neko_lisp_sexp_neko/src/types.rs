@@ -20,6 +20,7 @@ pub enum NekoValue {
     NekoList(Vec<NekoType>),
     NekoFn(Function),
     NekoErr(String),
+    NekoAtom(Rc<RefCell<Atom>>),
     NekoTrue,
     NekoNil
 }
@@ -31,12 +32,25 @@ pub struct Symbol(pub String);
 pub struct NekoType(pub Rc<NekoValue>);
 
 #[derive(Clone)]
+pub struct Atom(pub NekoType);
+
+#[derive(Clone)]
 pub struct Function {
     boxed:Option<Rc<Box<dyn Fn(Vec<NekoType>,Env) -> NekoType>>>,
     ast:Option<Vec<NekoType>>,
     is_box:bool,
     is_special_form:bool,
     print:String,
+}
+
+impl Atom {
+    pub fn set_neko(&mut self,neko:NekoType) {
+        self.0 = neko
+    }
+    
+    pub fn get_neko(&self) -> NekoType{
+        return self.0.clone()
+    }
 }
 
 impl NekoType {
@@ -65,6 +79,18 @@ impl NekoType {
             _ => false,
         }
     }
+
+    pub fn atom(n:NekoType) -> NekoType {
+        let neko_atom = NekoAtom(Rc::new(RefCell::new(Atom(n))));
+        NekoType(Rc::new(neko_atom))
+    }
+
+    pub fn is_atom(&self) -> bool {
+        match *self.0 {
+            NekoAtom(_) => true,
+            _ => false,
+        }
+    }    
 
     pub fn int_64(i:i64) -> NekoType {
         NekoType(Rc::new(Nekoi64(i)))

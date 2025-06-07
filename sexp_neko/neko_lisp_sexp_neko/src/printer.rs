@@ -16,6 +16,11 @@ pub fn pr_str(neko:NekoType) -> String {
         NekoNil => {output = "nil".to_string();},
         NekoTrue => {output = "T".to_string();},
         NekoKeyword(k) => {output = k.clone()},
+        NekoAtom(a) => {
+            let atom = a.borrow_mut();
+            let neko = atom.get_neko();
+            write!(&mut output,"ATOM({})", pr_str(neko));
+        },
         NekoErr(e) => {write!(&mut output,"Error: {}", e.clone());},
         NekoFn(f) => {write!(&mut output,"#<{}>", f.print());}
         NekoList(v) => {

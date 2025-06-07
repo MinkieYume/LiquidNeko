@@ -2,10 +2,9 @@ use alloc::{vec::Vec, string::String, boxed::Box,rc::Rc};
 use core::cell::RefCell;
 use hashbrown::HashMap;
 use SymbolTypes::*;
+use crate::{reader::Reader, types::NekoType,core::*};
 
-use crate::reader::Reader;
-
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq,Eq,Hash)]
 enum SymbolTypes {
     SymbolChar(char),
     SymbolStr(String),
@@ -16,6 +15,7 @@ enum SymbolTypes {
 
 #[derive(Clone)]
 pub struct Symbols {
+    reader_marcos:HashMap<SymbolTypes,NekoType>,
     data:HashMap<String,SymbolTypes>,
 }
 
@@ -33,15 +33,27 @@ impl SymbolRef {
         symbolref.set("comment_end",SymbolChar('\n'));
         symbolref.set("keyword",SymbolChar(':'));
         symbolref.set("split",SymbolCharList(vec![' ',',','\n']));
-        symbolref.set("marco_symbols",SymbolCharList(vec!['\'','`','~','@','^']));
-        symbolref.set("marco_str",SymbolStrList(vec!["~@".to_string(),"@~".to_string()]));
         symbolref.set("special",SymbolSpecialChars);
+        symbolref.set_reader_marco(SymbolChar('@'),NekoType::symbol("deref".to_string()));
         return symbolref;
         
     }
 
     pub fn set(&self,key:&str,val:SymbolTypes) {
         self.0.borrow_mut().data.insert(key.to_string(),val);
+    }
+
+    pub fn set_reader_marco(&self,key:SymbolTypes,val:NekoType) {
+        self.0.borrow_mut().reader_marcos.insert(key,val);
+    }
+
+    pub fn get_reader_marco(&self,key:SymbolTypes) -> Option<NekoType> {
+        let s = self.0.borrow();
+        let val = s.reader_marcos.get(&key);
+        match val {
+            Some(n) => Some(n.clone()),
+            None => None,
+        }
     }
 
     pub fn get(&self,key:&str) -> Option<SymbolTypes>{
@@ -61,6 +73,57 @@ impl SymbolRef {
             Some(false)
         } else {
             None
+        }
+    }
+
+    pub fn parse_str_reader_marco(&self,s:&str) -> Option<NekoType> {
+        let mut marcos = &self.0.borrow().reader_marcos;
+        for marco in marcos.keys() {
+            if s.len() > 1 {
+                if str_pair(s,marco.clone()){
+                    let n = marcos.get(marco).unwrap().clone();
+                    return Some(n);
+                };
+            } else {
+                let c = s.chars().next();
+                if let Some(nc) = c{
+                    if char_pair(nc,marco.clone()) {
+                        return self.parse_char_reader_marco(nc);
+                    };
+                }
+            }
+
+        }
+        return None;
+    }
+
+    pub fn parse_char_reader_marco(&self,c:char) -> Option<NekoType> {
+        let mut marcos = &self.0.borrow().reader_marcos;
+        for marco in marcos.keys() {
+            if char_pair(c,marco.clone()) {
+                let n = marcos.get(marco).unwrap().clone();
+                return Some(n);
+            }
+            
+        }
+        return None;
+    }
+
+    pub fn is_str_reader_marco(&self,s:&str) -> bool{
+        let r = self.parse_str_reader_marco(s);
+        if let Some(_) = r {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn is_char_reader_marco(&self,c:char) -> bool{
+        let r = self.parse_char_reader_marco(c);
+        if let Some(_) = r {
+            true
+        } else {
+            false
         }
     }
 
@@ -85,7 +148,8 @@ impl SymbolRef {
 impl Symbols {
     pub fn new() -> Symbols {
         Symbols {
-            data:HashMap::new()
+            data:HashMap::new(),
+            reader_marcos:HashMap::new(),
         }
     }
 }

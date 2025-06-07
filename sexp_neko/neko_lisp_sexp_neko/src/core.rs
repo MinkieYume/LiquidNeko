@@ -8,6 +8,7 @@ use crate::types::Function;
 use crate::types::NekoValue;
 use crate::types::NekoValue::*;
 use crate::env::Env;
+use crate::reader::*;
 use crate::eval::*;
 use crate::printer::*;
 
@@ -42,6 +43,24 @@ impl Core {
         let count =
             Function::new_box(Rc::new(Box::new(|v,e| count(v))),"COUNT",false);
         binds.insert(Symbol("count?".to_string()),NekoType::func(count));
+        let read_string =
+            Function::new_box(Rc::new(Box::new(|v,e| read_string(v,e))),"READSTRING",false);
+        binds.insert(Symbol("read-string".to_string()),NekoType::func(read_string));
+        let atom =
+            Function::new_box(Rc::new(Box::new(|v,e| atom(v,e))),"ATOM",false);
+        binds.insert(Symbol("atom".to_string()),NekoType::func(atom));
+        let atomp =
+            Function::new_box(Rc::new(Box::new(|v,e| atomp(v,e))),"ATOM?",false);
+        binds.insert(Symbol("atom?".to_string()),NekoType::func(atomp));
+        let deref =
+            Function::new_box(Rc::new(Box::new(|v,e| deref(v,e))),"DEREF",false);
+        binds.insert(Symbol("deref".to_string()),NekoType::func(deref));
+        let reset =
+            Function::new_box(Rc::new(Box::new(|v,e| reset(v,e))),"RESET",false);
+        binds.insert(Symbol("reset".to_string()),NekoType::func(reset));
+        let swap =
+            Function::new_box(Rc::new(Box::new(|v,e| swap(v,e))),"SWAP",false);
+        binds.insert(Symbol("swap".to_string()),NekoType::func(swap));
         let def =
             Function::new_box(Rc::new(
                 Box::new(|v,e| def(v,e))),"DEF",true);
@@ -158,6 +177,21 @@ fn count(mut v:Vec<NekoType>) -> NekoType {
     } else {
         return NekoType::err("参数不是列表".to_string());
     }
+}
+
+fn read_string(mut v:Vec<NekoType>,env:Env) -> NekoType {
+    let mut results:Vec<NekoType> = Vec::new();
+    for arg in v {
+        if let NekoString(s) = arg.get_ref().borrow() {
+            results.push(read_str(s.as_str(),env.clone()));
+        }
+    }
+    if results.len() != 1 {
+        return NekoType::list(results);
+    } else {
+        return results.remove(0);
+    }
+    
 }
 
 fn def(mut args:Vec<NekoType>,env:Env) -> NekoType {
@@ -297,3 +331,92 @@ fn lambda(mut args:Vec<NekoType>,env:Env) -> NekoType {
     return NekoType::func(f);
 }
 
+fn atom(mut args:Vec<NekoType>,env:Env) -> NekoType {
+    if args.len() > 0{
+        let mut results:Vec<NekoType> = Vec::new();
+        for arg in args {
+            results.push(NekoType::atom(arg.clone()));
+        }
+        if results.len() == 1{
+            return results.remove(0);
+        } else {
+            return NekoType::list(results);
+        }
+    } else {
+        return NekoType::err("参数不能为空".to_string())
+    }
+    
+}
+
+fn atomp(mut args:Vec<NekoType>,env:Env) -> NekoType {
+    if args.len() == 1 {
+        let l = args.remove(0);
+        if let NekoAtom(_) = *l.get_ref() {
+            return NekoType::neko_true();
+        } else {
+            return NekoType::nil();
+        }
+    } else {
+        return NekoType::err("只支持单一参数判定".to_string());
+    }
+}
+
+fn deref(mut args:Vec<NekoType>,env:Env) -> NekoType {
+    if args.len() > 0 {
+        let mut results:Vec<NekoType> = Vec::new();
+        for arg in args {
+            //println!("{}",arg.get_type_str());
+            if let NekoAtom(a) = arg.get_ref().borrow() {
+                let mut atom = a.borrow_mut();
+                let n = atom.get_neko();
+                results.push(n);
+            } else {
+                return NekoType::err("参数不为原子".to_string())
+            }
+        }
+        if results.len() == 1{
+            return results.remove(0);
+        } else {
+            return NekoType::list(results);
+        }
+    } else {
+        return NekoType::err("参数不能为空".to_string())
+    }
+}
+
+fn reset(mut args:Vec<NekoType>,env:Env) -> NekoType {
+    if args.len() == 2 {
+        let atom_n = args.remove(0);
+        let neko = args.remove(0);
+        if let NekoAtom(a) = atom_n.get_ref().borrow() {
+            let mut atom = a.borrow_mut();
+            atom.set_neko(neko.clone());
+            return neko;
+        } else {
+            return NekoType::err("奇参数不是Atom".to_string())
+        }
+    } else {
+        return NekoType::err("参数数量不对".to_string());
+    }
+}
+
+fn swap(mut args:Vec<NekoType>,env:Env) -> NekoType {
+    if args.len() >= 2 {
+        let atom_n = args.remove(0);
+        let func_n = args.remove(0);
+        if let NekoAtom(a) = atom_n.get_ref().borrow() {
+            let mut atom = a.borrow_mut();
+            if let NekoFn(f) = func_n.get_ref().borrow(){
+                args.insert(0,atom.get_neko());
+                let r = f.call(args,env);
+                atom.set_neko(r.clone());
+                return r
+            }
+        }
+        return NekoType::err("输入参数类型不正确".to_string());
+    } else {
+        return NekoType::err("参数数量不对".to_string());
+    }
+
+    
+}
