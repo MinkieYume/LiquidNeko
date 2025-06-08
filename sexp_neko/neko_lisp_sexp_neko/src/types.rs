@@ -3,6 +3,7 @@ use core::ops::{Add,Sub,Mul,Div,Fn,Deref};
 use core::cmp::{Eq,PartialEq};
 use core::mem::discriminant;
 use core::cell::RefCell;
+use std::borrow::Borrow;
 use NekoValue::*;
 use crate::env::Env;
 use crate::eval::*;
@@ -143,6 +144,20 @@ impl NekoType {
     pub fn is_list(&self) -> bool {
         match *self.0 {
             NekoList(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_no_empty_list(&self) -> bool {
+        let n = self.get_ref();
+        match n.borrow() {
+            NekoList(l) => {
+                if l.len() > 0 {
+                    true
+                } else {
+                    false
+                }
+            },
             _ => false,
         }
     }

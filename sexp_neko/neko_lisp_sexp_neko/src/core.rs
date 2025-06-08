@@ -43,6 +43,12 @@ impl Core {
         let count =
             Function::new_box(Rc::new(Box::new(|v,e| count(v))),"COUNT",false);
         binds.insert(Symbol("count?".to_string()),NekoType::func(count));
+        let cons =
+            Function::new_box(Rc::new(Box::new(|v,e| cons(v))),"CONS",false);
+        binds.insert(Symbol("cons".to_string()),NekoType::func(cons));
+        let concat =
+            Function::new_box(Rc::new(Box::new(|v,e| concat(v))),"CONCAT",false);
+        binds.insert(Symbol("concat".to_string()),NekoType::func(concat));
         let read_string =
             Function::new_box(Rc::new(Box::new(|v,e| read_string(v,e))),"READSTRING",false);
         binds.insert(Symbol("read-string".to_string()),NekoType::func(read_string));
@@ -83,9 +89,14 @@ impl Core {
                      NekoType::func(progn));
         let quote =
             Function::new_box(Rc::new(
-                Box::new(|v,e| quote(v,e))),"PROGN",true);
+                Box::new(|v,e| quote(v,e))),"QUOTE",true);
         binds.insert(Symbol("quote".to_string()),
                      NekoType::func(quote));
+        let quasiquote =
+            Function::new_box(Rc::new(
+                Box::new(|v,e| quasiquote(v,e))),"QUASIQUOTE",true);
+        binds.insert(Symbol("quasiquote".to_string()),
+                     NekoType::func(quasiquote));
         let lambda =
             Function::new_box(Rc::new(
                 Box::new(|v,e| lambda(v,e))),"LAMBDA",true);
@@ -411,8 +422,85 @@ fn quote(mut args:Vec<NekoType>,env:Env) -> NekoType {
     } else if args.len() > 1{
         return NekoType::list(args);
     } else {
-        return NekoType::err("参数数量不对".to_string());
+        return NekoType::err("参数不能为空".to_string());
     }
+}
+
+fn quasiquote(mut args:Vec<NekoType>,env:Env) -> NekoType {
+    if args.len() >= 1{
+        let mut results:Vec<NekoType> = Vec::new();
+        for arg in args {
+            results.push(_quasiquote(arg,env.clone()));
+        }
+        
+        env.set_tco(env.clone());
+        if results.len() == 1 {
+            return results.remove(0);
+        } else if results.len() > 1{
+            return NekoType::list(results);
+        } else {
+            return NekoType::nil();
+        }
+    } else {
+        return NekoType::err("参数不能为空".to_string());
+    }
+}
+
+fn _quasiquote(mut ast:NekoType,env:Env) -> NekoType {
+    let mut result:Vec<NekoType> = Vec::new();
+    if !ast.is_no_empty_list() {
+        result.push(NekoType::symbol("quote".to_string()));
+        result.push(ast);
+        return NekoType::list(result);
+    } else {
+        if let NekoList(mut list) = ast.copy_value() {
+            let first = list.remove(0);
+            if let NekoSymbol(symbol) = first.get_ref().borrow() {
+                if symbol.val() == "unquote".to_string() {
+                    if list.len() >= 1{
+                        return NekoType::list(list);
+                    }
+                } else if symbol.val() == "quote".to_string() {
+                    return ast;
+                }
+            } else if let NekoList(mut s_list) = first.copy_value() {
+                let s_first = s_list.remove(0);
+                if let NekoSymbol(symbol) = first.get_ref().borrow() {
+                    if symbol.val() == "splice-unquote".to_string() {
+                        result.push(NekoType::symbol("concat".to_string()));
+                        let mut nr_list:Vec<NekoType> = Vec::new();
+                        if s_list.len() >= 1 {
+                            let empty:Vec<NekoType> = Vec::new();
+                            nr_list.push(NekoType::symbol("concat".to_string()));
+                            for ss in s_list {
+                                if ss.is_list() {
+                                    nr_list.push(ss.clone());
+                                } else {
+                                    let mut nrn_list:Vec<NekoType> = Vec::new();
+                                    nrn_list.push(ss.clone());
+                                    nr_list.push(NekoType::list(nrn_list));
+                                }
+                            }
+                            nr_list.push(NekoType::list(empty));
+                            result.push(NekoType::list(nr_list));
+                            
+                        } else {
+                            result.push(NekoType::list(s_list));
+                        }
+                        result.push(_quasiquote(NekoType::list(list),env.clone()));
+                        return NekoType::list(result);
+                        
+                    }
+                }
+                
+            }
+            result.push(NekoType::symbol("cons".to_string()));
+            result.push(_quasiquote(first,env.clone()));
+            result.push(_quasiquote(NekoType::list(list),env.clone()));
+            return NekoType::list(result);
+        }
+    }
+    return NekoType::err("quasiquote表达式不正确".to_string());
 }
 
 fn swap(mut args:Vec<NekoType>,env:Env) -> NekoType {
@@ -435,3 +523,37 @@ fn swap(mut args:Vec<NekoType>,env:Env) -> NekoType {
 
     
 }
+
+fn cons(mut args:Vec<NekoType>) -> NekoType {
+    //将所有参数按顺序插入最后传入的列表前面
+    if args.len() >= 2 {
+        let list = args.pop();
+        if let Some(neko) = list {
+            if let NekoList(nl) = neko.get_ref().borrow() {
+                let mut n_list = nl.clone();
+                n_list.splice(0..0,args);
+                return NekoType::list(n_list);
+            } else {
+            return NekoType::err("最后一个参数不是列表".to_string());
+            }
+        }
+    }
+    return NekoType::err("传入参数数量小于2".to_string());
+
+}
+
+fn concat(mut args:Vec<NekoType>) -> NekoType {
+    if args.len() >= 2 {
+        let mut result:Vec<NekoType> = Vec::new();
+        for arg in args {
+            if let NekoList(c) = arg.get_ref().borrow() {
+                result.append(&mut c.clone())
+            } else {
+                return NekoType::err("传入参数必须为列表".to_string());
+            }
+        }
+        return NekoType::list(result);
+    }
+    return NekoType::err("传入参数数量小于2".to_string());
+}
+
