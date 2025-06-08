@@ -3,23 +3,28 @@
 :CATEGORY: NekoLispSN
 :END:
 ** DONE 添加Forms类，以便识别各个符号
-** TODO [#C] 重构Reader代码
 ** DONE 添加:keyword解析实现
-** TODO [#C] 为Reader添加宏支持
-** TODO [#C] 为Reader支持向量
+** DONE [#C] 为Reader添加宏支持
 ** TODO [#C] 为Reader支持字典
-** TODO [#C] 为EvalAst添加向量和哈希表支持
-如果 ast 是一个向量: 返回对于向量中的每个元素 EVAL 调用得到的结果所组成的向量
-如果 ast 是一个哈希表: 返回一个新的哈希表，它的键是从原哈希表中来的键，值是对于原哈希表中的键所对应的值调用 EVAL 得到的结果。
 ** TODO 优化Reader逻辑 确保只有symbol前面的宏符号会被截断
 ** DONE 实现步骤3 Environments环境
-** TODO 为Env引入权限分级制以确保安全
 ** TODO 将符号Symbols类作为Env的参数
 ** TODO 创建Number抽象类
 要求Number抽象类能自动处理并返回所有Rust的数字类型并映射为Neko的数据类型
-** TODO 实现Error分类的映射功能
-将Error进行分类，映射到为多个不同的Error类型，并允许用户自定义自己的Error类型。
 ** TODO 实现更多自定义字段功能
 比如true，false和nil的显示字段，错误字段的环境自定义等。
 ** DONE 实现if fn和do
 ** DONE BUGFIX：fn环境不对
+** TODO [#C] 为EvalAst添加哈希表支持
+如果 ast 是一个哈希表: 返回一个新的哈希表，它的键是从原哈希表中来的键，值是对于原哈希表中的键所对应的值调用 EVAL 得到的结果。 
+** TODO 为Env引入权限分级制以确保安全
+实现Env的权限分级特性：
+- 为env添加用户机制，允许给不同用户授予不同对数据的修改与访问权限，确保一个用户为一个独立的env。
+- 为env添加权限锁支持，确保每个env都能为symbol设置受限访问和允许访问的权限。
+- 为脚本添加一个用户全局env的切换方法。
+- 添加一个解锁和重新上锁权限锁的方法，该方法需要输入当前环境给定的密码才能实现。
+** TODO 支持面向对象的特性
+面向对象特性我打算支持类似rust风格的struct和impl解耦合的特性。
+
+** TODO 定义基础的Neko类型实现
+即文案中所写的Neko四标准，基于这四个标准，实现Neko类型，一个Neko即为一个脚本。

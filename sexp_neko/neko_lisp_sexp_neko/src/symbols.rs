@@ -35,8 +35,8 @@ impl SymbolRef {
         symbolref.set("split",SymbolCharList(vec![' ',',','\n']));
         symbolref.set("special",SymbolSpecialChars);
         symbolref.set_reader_marco(SymbolChar('@'),NekoType::symbol("deref".to_string()));
-        return symbolref;
-        
+        symbolref.set_reader_marco(SymbolChar('\''),NekoType::symbol("quote".to_string()));
+        return symbolref;   
     }
 
     pub fn set(&self,key:&str,val:SymbolTypes) {

@@ -64,7 +64,7 @@ impl Core {
         let def =
             Function::new_box(Rc::new(
                 Box::new(|v,e| def(v,e))),"DEF",true);
-        binds.insert(Symbol("def!".to_string()),
+        binds.insert(Symbol("def".to_string()),
                      NekoType::func(def));
         let let_ =
             Function::new_box(Rc::new(
@@ -81,6 +81,11 @@ impl Core {
                 Box::new(|v,e| progn(v,e))),"PROGN",true);
         binds.insert(Symbol("progn".to_string()),
                      NekoType::func(progn));
+        let quote =
+            Function::new_box(Rc::new(
+                Box::new(|v,e| quote(v,e))),"PROGN",true);
+        binds.insert(Symbol("quote".to_string()),
+                     NekoType::func(quote));
         let lambda =
             Function::new_box(Rc::new(
                 Box::new(|v,e| lambda(v,e))),"LAMBDA",true);
@@ -395,6 +400,16 @@ fn reset(mut args:Vec<NekoType>,env:Env) -> NekoType {
         } else {
             return NekoType::err("奇参数不是Atom".to_string())
         }
+    } else {
+        return NekoType::err("参数数量不对".to_string());
+    }
+}
+
+fn quote(mut args:Vec<NekoType>,env:Env) -> NekoType {
+    if args.len() == 1 {
+        return args.remove(0)
+    } else if args.len() > 1{
+        return NekoType::list(args);
     } else {
         return NekoType::err("参数数量不对".to_string());
     }
