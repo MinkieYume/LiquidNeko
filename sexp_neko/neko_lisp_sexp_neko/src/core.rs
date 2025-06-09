@@ -432,7 +432,6 @@ fn quasiquote(mut args:Vec<NekoType>,env:Env) -> NekoType {
         for arg in args {
             results.push(_quasiquote(arg,env.clone()));
         }
-        
         env.set_tco(env.clone());
         if results.len() == 1 {
             return results.remove(0);
@@ -465,6 +464,7 @@ fn _quasiquote(mut ast:NekoType,env:Env) -> NekoType {
                     return ast;
                 } else if symbol.val() == "splice-unquote".to_string() {
                     if list.len() >= 1{
+                        list.push(NekoType::err("splice-unquote必须置于列表中。".to_string()));
                         return NekoType::list(list);
                     }
                 }

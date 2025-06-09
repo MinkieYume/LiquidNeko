@@ -76,10 +76,10 @@ pub fn apply(list:NekoType,env:Env) -> NekoType {
                     v_list = eval_ast(v_list.clone(),env.clone());
                 },
                 _ => {
-                    //第一个值为其它值，则对每个值进行eval_ast并返回
+                    //第一个值为其它值，则对每个值进行eval并返回
                     let mut result:Vec<NekoType> = Vec::new();
                     for n in v {
-                        result.push(eval_ast(n.clone(),env.clone()));
+                        result.push(eval(n.clone(),env.clone()));
                     }
                     return NekoType::list(result);
                 },
