@@ -457,16 +457,23 @@ fn _quasiquote(mut ast:NekoType,env:Env) -> NekoType {
             let first = list.remove(0);
             if let NekoSymbol(symbol) = first.get_ref().borrow() {
                 if symbol.val() == "unquote".to_string() {
+                    //ast第一个参数为符号且为unquote的情况
                     if list.len() >= 1{
                         return NekoType::list(list);
                     }
                 } else if symbol.val() == "quote".to_string() {
                     return ast;
+                } else if symbol.val() == "splice-unquote".to_string() {
+                    if list.len() >= 1{
+                        return NekoType::list(list);
+                    }
                 }
             } else if let NekoList(mut s_list) = first.copy_value() {
+                //ast第一个参数为NekoList的情况
                 let s_first = s_list.remove(0);
-                if let NekoSymbol(symbol) = first.get_ref().borrow() {
+                if let NekoSymbol(symbol) = s_first.get_ref().borrow() {
                     if symbol.val() == "splice-unquote".to_string() {
+                        //ast的第一个参数的第一个参数为splice-unquote的情况
                         result.push(NekoType::symbol("concat".to_string()));
                         let mut nr_list:Vec<NekoType> = Vec::new();
                         if s_list.len() >= 1 {
