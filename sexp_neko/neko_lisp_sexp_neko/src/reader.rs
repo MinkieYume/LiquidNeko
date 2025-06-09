@@ -30,7 +30,7 @@ impl Reader {
     }
 }
 
-pub fn pre_read_str(s:&str,env:Env) -> Vec<String>{
+pub fn pre_read_str(s:&str,env:Env) -> Vec<String> {
     let mut s_chars = s.chars();
     return pre_read_form(&mut s_chars,env);
 }
@@ -39,9 +39,12 @@ fn pre_read_form(s_chars:&mut Chars<'_>,env:Env) -> Vec<String> {
     let mut sexps:Vec<String> = Vec::new();
     let mut sexp = String::new();
     let symb = env.get_symbol();
+    let mut s_exp_in_reader_marco = false;
     while let Some(c) = s_chars.next() {
         if symb.pair_char(c,"s_exp_begin") {
-            if !sexp.is_empty() {
+            if s_exp_in_reader_marco {
+                s_exp_in_reader_marco = false
+            } else if !sexp.is_empty() {
                 sexps.push(sexp.clone());
                 sexp.clear();
             }
@@ -56,6 +59,9 @@ fn pre_read_form(s_chars:&mut Chars<'_>,env:Env) -> Vec<String> {
             }
         } else {
             sexp.push(c);
+            if symb.is_str_reader_marco(&sexp) {
+                s_exp_in_reader_marco = true;
+            }
         }
     }
     return sexps;
@@ -316,20 +322,15 @@ pub fn read_reader_marco(r:&mut Reader,env:Env) -> NekoType {
     let mut list:Vec<NekoType> = Vec::new();
     let symbol = env.get_symbol();
     let s = r.next().unwrap();
-    let arg = r.next();
-    if let Some(s_arg) = arg {
-        //println!("{}",s);
-        //println!("{}",s_arg);
-        let marco = symbol.parse_str_reader_marco(s.as_str()).unwrap();
-        list.push(marco);
-        let arg_neko = try_parse(&s_arg,env.clone());
-        let neko = arg_neko.unwrap_or(NekoType::symbol(s_arg.clone()));
-        //println!("{}",neko.get_type_str());
-        list.push(neko);
-        return NekoType::list(list);
-    } else{
-        return NekoType::err("无法解析该reader宏，没有参数".to_string());
-    }
+    let sp = r.peek().unwrap_or("none".to_string());
+    let arg = read_form(r,env.clone());
+    //println!("{}",s);
+    //println!("{}",sp);
+    let marco = symbol.parse_str_reader_marco(s.as_str()).unwrap();
+    list.push(marco);
+    //println!("{}",arg.get_type_str());
+    list.push(arg);
+    return NekoType::list(list);
 }
 
 fn try_parse(s:&str,env:Env) -> Option<NekoType>{
