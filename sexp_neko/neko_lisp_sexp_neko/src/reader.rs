@@ -322,7 +322,7 @@ pub fn read_reader_marco(r:&mut Reader,env:Env) -> NekoType {
     let mut list:Vec<NekoType> = Vec::new();
     let symbol = env.get_symbol();
     let s = r.next().unwrap();
-    let sp = r.peek().unwrap_or("none".to_string());
+    //let sp = r.peek().unwrap_or("none".to_string());
     let arg = read_form(r,env.clone());
     //println!("{}",s);
     //println!("{}",sp);
