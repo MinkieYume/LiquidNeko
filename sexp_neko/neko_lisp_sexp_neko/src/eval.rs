@@ -50,34 +50,43 @@ pub fn eval(mut n:NekoType,env:Env) -> NekoType {
     }
 }
 
-pub fn apply(mut list:NekoType,env:Env) -> NekoType {
-    //对列表执行求值与应用操作
-    if let NekoList(mut v) = list.copy_value() {
-        let mut first_arg = v.remove(0);
-        let mut args:Vec<NekoType> = Vec::new();
-        for cn in v {
-            args.push(cn);
-        };
-        match first_arg.copy_value() {
-            NekoFn(f) => {
-                if !f.is_special(){
-                    return f.call(args,env.clone());
-                } else {
-                    return NekoType::err("不可在此调用特殊形式".to_string());
-                }
-            },
-            NekoList(_)|NekoSymbol(_) => {
-                let mut nfn
-                    = eval_ast(first_arg.clone(),env.clone());
-                if let NekoFn(f) = nfn.copy_value() {
-                    if f.is_special() {
+pub fn apply(list:NekoType,env:Env) -> NekoType {
+    //对列表执行求值与应用操作    
+    let mut v_list = list.clone();
+    loop{
+        if let NekoList(v) = v_list.get_ref().borrow() {
+            let mut args:Vec<NekoType> = v.clone();
+            let mut first_arg = args.remove(0);
+            match first_arg.get_ref().borrow() {
+                NekoFn(f) => {
+                    if !f.is_special(){
                         return f.call(args,env.clone());
+                    } else {
+                        return NekoType::err("不可在此调用特殊形式".to_string());
                     }
-                }
-                return apply(eval_ast(list,env.clone()),env.clone());
-            },
-            _ => {return list},
-        };
-    };
-    return list;
+                },
+                NekoSymbol(_) => {
+                    let mut nfn
+                        = eval_ast(first_arg.clone(),env.clone());
+                    if let NekoFn(f) = nfn.copy_value() {
+                        if f.is_special() {
+                            return f.call(args,env.clone());
+                        }
+                    }
+                    v_list = eval_ast(v_list.clone(),env.clone());
+                },
+                _ => {
+                    //第一个值为其它值，则对每个值进行eval_ast并返回
+                    let mut result:Vec<NekoType> = Vec::new();
+                    for n in v {
+                        result.push(eval_ast(n.clone(),env.clone()));
+                    }
+                    return NekoType::list(result);
+                },
+            };
+        } else {
+            return list;
+        }
+    }
+    
 }
