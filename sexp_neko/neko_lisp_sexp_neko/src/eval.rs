@@ -87,6 +87,5 @@ pub fn apply(list:NekoType,env:Env) -> NekoType {
         } else {
             return list;
         }
-    }
-    
+    }    
 }
