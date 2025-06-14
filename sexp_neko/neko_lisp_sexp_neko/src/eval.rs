@@ -7,6 +7,7 @@ use crate::types::NekoValue::*;
 use crate::types::Symbol;
 use crate::symbols::Symbols;
 use crate::env::Env;
+use crate::core::marco_expand;
 
 pub fn eval_ast(mut n:NekoType,env:Env) -> NekoType {
     //对单个参数进行求值
@@ -33,7 +34,9 @@ pub fn eval(mut n:NekoType,env:Env) -> NekoType {
         match v_n.get_ref().borrow() {
             NekoList(v) => {
                 if !v.is_empty() {
-                    result = apply(v_n,v_env.clone());
+                    let marco_result = marco_expand(v.clone(),env.clone());
+                    let nlist = NekoType::list(marco_result);
+                    result = apply(nlist,v_env.clone());
                 } else {
                     result = v_n;
                 }

@@ -41,6 +41,7 @@ pub struct Function {
     ast:Option<Vec<NekoType>>,
     is_box:bool,
     is_special_form:bool,
+    is_marco:bool,
     print:String,
 }
 
@@ -263,6 +264,14 @@ impl Function {
         return self.is_box
     }
 
+    pub fn is_marco(&self) -> bool {
+        return self.is_marco
+    }
+
+    pub fn set_is_marco(&mut self,i_marco:bool) {
+        self.is_marco = i_marco;
+    }
+
     pub fn new_box(_box:Rc<Box<dyn Fn
                                    (Vec<NekoType>,Env) -> NekoType>>,
     pr:&str,special:bool) -> Function {
@@ -271,6 +280,20 @@ impl Function {
             ast:None,
             is_box:true,
             is_special_form:special,
+            is_marco:false,
+            print:pr.to_string(),
+        }
+    }
+
+    pub fn new_marco_box(_box:Rc<Box<dyn Fn
+                                   (Vec<NekoType>,Env) -> NekoType>>,
+    pr:&str) -> Function {
+        Function {
+            boxed:Some(_box),
+            ast:None,
+            is_box:true,
+            is_special_form:true,
+            is_marco:true,
             print:pr.to_string(),
         }
     }
@@ -285,6 +308,18 @@ impl Function {
             ast:Some(_ast),
             is_box:false,
             is_special_form:special,
+            is_marco:false,
+            print:pr.to_string(),
+        }
+    }
+
+    pub fn new_marco(_ast:Vec<NekoType>,pr:&str) -> Function {
+        Function {
+            boxed:None,
+            ast:Some(_ast),
+            is_box:false,
+            is_special_form:true,
+            is_marco:true,
             print:pr.to_string(),
         }
     }

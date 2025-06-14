@@ -234,6 +234,74 @@ fn def(mut args:Vec<NekoType>,env:Env) -> NekoType {
     }
 }
 
+fn defmarco(mut args:Vec<NekoType>,env:Env) -> NekoType {
+    if args.len() >= 3 {
+        let mut name = args.remove(0);
+        if name.is_symbol() {
+            let n_func = _lambda(args,env.clone(),true);
+            let mut def_args:Vec<NekoType> = Vec::new();
+            def_args.push(name);
+            def_args.push(n_func);
+            return def(def_args,env.clone());
+        }
+        return NekoType::err("宏的名称必须为Symbol，且宏的参数必须在括号内".to_string());
+    } else {
+        return NekoType::err("一个完整的宏应至少包含名称、参数和代码".to_string());
+    }
+}
+
+pub fn marco_expand(mut ast:Vec<NekoType>,env:Env) -> Vec<NekoType> {
+    let mut v_ast = ast;
+    loop {
+        if is_marco_call(v_ast.clone(),env.clone()) {
+            let ns = v_ast.remove(0);
+            if let NekoSymbol(symbol) = ns.get_ref().borrow() {
+                let marco = env.get(symbol);
+                if let NekoFn(f) = ns.get_ref().borrow() {
+                    if f.is_marco() {
+                        let n_ast = f.call(v_ast.clone(),env.clone());
+                        if let NekoList(list) = n_ast.get_ref().borrow() {
+                            v_ast = list.clone();
+                        }
+                    }
+                }
+            }
+        } else {
+            return v_ast;
+        }
+    }
+}
+
+pub fn is_marco_call(mut ast:Vec<NekoType>,env:Env) -> bool {
+    let nil = NekoType::nil();
+    let symb = ast.get(0).unwrap_or(&nil);
+    if let NekoSymbol(symbol) = symb.get_ref().borrow() {
+        let nf = env.get(symbol);
+        if let NekoFn(f) = nf.get_ref().borrow() {
+            if f.is_marco() {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+fn defun(mut args:Vec<NekoType>,env:Env) -> NekoType {
+    if args.len() >= 3 {
+        let mut name = args.remove(0);
+        if name.is_symbol() {
+            let n_func = _lambda(args,env.clone(),false);
+            let mut def_args:Vec<NekoType> = Vec::new();
+            def_args.push(name);
+            def_args.push(n_func);
+            return def(def_args,env.clone());
+        }
+        return NekoType::err("函数的名称必须为Symbol，且宏的参数必须在括号内".to_string());
+    } else {
+        return NekoType::err("一个完整的函数应至少包含名称、参数和代码".to_string());
+    }
+}
+
 fn let_(mut args:Vec<NekoType>,env:Env) -> NekoType {
     let mut bindings = args.remove(0);
     let mut n_env = Env::new(Some(env.clone()));
@@ -329,21 +397,33 @@ fn progn(mut args:Vec<NekoType>,env:Env) -> NekoType {
 
 
 fn lambda(mut args:Vec<NekoType>,env:Env) -> NekoType {
+    return _lambda(args,env.clone(),false);
+}
+
+fn _lambda(mut args:Vec<NekoType>,env:Env,marco:bool) -> NekoType {
     if let Some(s) = args.get(0){
         if let NekoList(_) = *s.get_ref() {
-           
+            
         } else {
-             return NekoType::err("第一个项必须为列表".to_string())
+            return NekoType::err("参数必须在列表内".to_string())
         }
     } else {
         return NekoType::err("必须项不存在".to_string())
     }
     let mut prlist:Vec<NekoType> = Vec::new();
-    prlist.push(NekoType::symbol("FUNCTION".to_string()));
+    if marco {
+        prlist.push(NekoType::symbol("MARCO".to_string()));
+    } else {
+        prlist.push(NekoType::symbol("FUNCTION".to_string()));
+    }    
     prlist.append(&mut args.clone());
     let mut pralist = NekoType::list(prlist);
     let mut f = Function::
-    new_ast(args,pr_str(pralist).as_str(),false);
+    new_ast(args.clone(),pr_str(pralist.clone()).as_str(),false);
+    if marco {
+        f = Function::
+        new_marco(args.clone(),pr_str(pralist.clone()).as_str());
+    }
     return NekoType::func(f);
 }
 
@@ -427,7 +507,7 @@ fn quote(mut args:Vec<NekoType>,env:Env) -> NekoType {
 }
 
 fn quasiquote(mut args:Vec<NekoType>,env:Env) -> NekoType {
-    if args.len() >= 1{
+    if args.len() >= 1 {
         let mut results:Vec<NekoType> = Vec::new();
         for arg in args {
             results.push(_quasiquote(arg,env.clone()));
