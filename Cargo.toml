@@ -10,3 +10,9 @@ members=[
     "sexp_neko/neko_lisp_sexp_neko",
     "test/rust-study"
 ]
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
