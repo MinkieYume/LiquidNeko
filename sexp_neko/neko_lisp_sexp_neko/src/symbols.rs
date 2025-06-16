@@ -1,8 +1,10 @@
 use alloc::{vec::Vec, string::String, boxed::Box,rc::Rc};
+use alloc::vec;
+use alloc::string::ToString;
 use core::cell::RefCell;
 use hashbrown::HashMap;
 use SymbolTypes::*;
-use crate::{reader::Reader, types::NekoType,core::*};
+use crate::{reader::Reader, types::NekoType,nekocore::*};
 
 #[derive(Debug, Clone, PartialEq,Eq,Hash)]
 enum SymbolTypes {

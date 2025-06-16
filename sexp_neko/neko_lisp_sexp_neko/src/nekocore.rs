@@ -1,6 +1,7 @@
 use alloc::{boxed::Box,string::String, vec::Vec,rc::Rc};
 use core::cell::RefCell;
-use std::borrow::Borrow;
+use core::borrow::Borrow;
+use alloc::string::ToString;
 use hashbrown::HashMap;
 use crate::types::Symbol;
 use crate::types::NekoType;

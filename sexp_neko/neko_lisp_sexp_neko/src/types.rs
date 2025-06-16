@@ -1,9 +1,10 @@
 use alloc::{vec::Vec, string::String, boxed::Box ,rc::Rc};
+use alloc::string::ToString;
 use core::ops::{Add,Sub,Mul,Div,Fn,Deref};
 use core::cmp::{Eq,PartialEq};
 use core::mem::discriminant;
 use core::cell::RefCell;
-use std::borrow::Borrow;
+use core::borrow::Borrow;
 use NekoValue::*;
 use crate::env::Env;
 use crate::eval::*;
@@ -464,7 +465,7 @@ impl Div for NekoType {
                         return Self::err("0不能被除".to_string());
                     } else {
                         let c:f64 = a as f64 / b as f64;
-                        if c.fract() != 0.0 {
+                        if fract_f64(c) != 0.0 {
                             return Self::float_64(c)
                         } else{
                             return Self::int_64(c as i64);
@@ -475,7 +476,7 @@ impl Div for NekoType {
                         return Self::err("0不能被除".to_string());
                     } else {
                         let c:f64 = a as f64 / b as f64;
-                        if c.fract() != 0.0 {
+                        if fract_f64(c) != 0.0 {
                             return Self::float_64(c)
                         } else{
                             return Self::int_64(c as i64);
@@ -495,7 +496,7 @@ impl Div for NekoType {
                         return Self::err("0不能被除".to_string());
                     } else {
                         let c:f64 = a as f64 / b as f64;
-                        if c.fract() != 0.0 {
+                        if fract_f64(c) != 0.0 {
                             return Self::float_64(c)
                         } else{
                             return Self::int_64(c as i64);
@@ -506,5 +507,21 @@ impl Div for NekoType {
             _ => {}
         }
         Self::err("不支持的操作".to_string())
+    }
+}
+
+fn fract_f64(x:f64) -> f64 {
+    let fl = floor_f64(x) as f64;
+    return x - fl;
+
+}
+
+fn floor_f64(x:f64) -> i64 {
+    unsafe {
+        let truncated = x.to_int_unchecked::<i64>();
+        if x < 0.0 && x - truncated as f64 != 0.0 {
+            return truncated - 1;
+        }
+        return truncated;
     }
 }

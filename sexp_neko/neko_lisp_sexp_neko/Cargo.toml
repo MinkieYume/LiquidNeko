@@ -3,8 +3,11 @@ name = "neko_lisp_sexp_neko"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+name = "neko_lisp_sexp_neko"
+crate-type = ["staticlib", "cdylib"]
+
 [features]
 
 [dependencies]
-heapless = "0.8"
 hashbrown = "0.14"

@@ -1,6 +1,7 @@
 use alloc::{vec::Vec, string::String, boxed::Box};
 use core::fmt::Write;
-use std::borrow::Borrow;
+use core::borrow::Borrow;
+use alloc::string::ToString;
 use crate::types::NekoType;
 use crate::types::NekoValue;
 use crate::types::NekoValue::*;

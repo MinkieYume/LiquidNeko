@@ -1,4 +1,6 @@
 #![allow(non_snake_case)]
+#![no_std]
+#![no_main]
 extern crate alloc;
 mod types;
 mod reader;
@@ -6,13 +8,35 @@ mod printer;
 mod symbols;
 mod eval;
 mod env;
-mod core;
-use std::io::{self, Write};
+mod nekocore;
+use alloc::alloc::{GlobalAlloc, Layout};
+use alloc::string::String;
+use ::core::panic::PanicInfo;
 use crate::types::NekoType;
-use crate::symbols::Symbols;
 use crate::env::Env;
 
-fn main() {
+pub struct Allocator;
+
+unsafe impl GlobalAlloc for Allocator {
+    unsafe fn alloc(&self, _layout: Layout) -> *mut u8 {
+        0 as *mut u8
+    }
+    unsafe fn dealloc(&self, _ptr: *mut u8, _layout: Layout) {
+        unreachable!();     // since we never allocate
+    }
+}
+
+#[global_allocator]
+static GLOBAL_ALLOCATOR: Allocator = Allocator;
+
+#[panic_handler]
+fn panic(_info: &PanicInfo) -> ! {
+    loop {}  // 在发生 panic 时进入死循环，通常意味着程序崩溃
+}
+
+//use std::io::{self, Write};
+
+/*fn main() {
     let mut env = Env::default();
     loop {
 	let mut input = String::new();
@@ -33,7 +57,7 @@ fn main() {
         }
 	io::stdout().flush().unwrap();
     }
-}
+}*/
 
 fn READ(mut s:&str,env:Env) -> NekoType {
     reader::read_str(s,env.clone())
