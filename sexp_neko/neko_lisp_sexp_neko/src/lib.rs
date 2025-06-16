@@ -17,6 +17,7 @@ use crate::env::Env;
 
 pub struct Allocator;
 
+//这是一个占位符实现
 unsafe impl GlobalAlloc for Allocator {
     unsafe fn alloc(&self, _layout: Layout) -> *mut u8 {
         0 as *mut u8

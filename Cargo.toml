@@ -6,7 +6,6 @@ edition = "2024"
 [dependencies]
 
 [workspace]
-
 members=[
     "sexp_neko/neko_lisp_sexp_neko",
     "test/rust-study"
