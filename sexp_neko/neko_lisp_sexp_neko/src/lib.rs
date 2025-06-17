@@ -11,24 +11,14 @@ mod env;
 mod nekocore;
 use alloc::alloc::{GlobalAlloc, Layout};
 use alloc::string::String;
+use mimalloc_rust::*;
 use ::core::panic::PanicInfo;
 use crate::types::NekoType;
 use crate::env::Env;
-
-pub struct Allocator;
-
-//这是一个占位符实现
-unsafe impl GlobalAlloc for Allocator {
-    unsafe fn alloc(&self, _layout: Layout) -> *mut u8 {
-        0 as *mut u8
-    }
-    unsafe fn dealloc(&self, _ptr: *mut u8, _layout: Layout) {
-        unreachable!();     // since we never allocate
-    }
-}
+use mimalloc_rust::*;
 
 #[global_allocator]
-static GLOBAL_ALLOCATOR: Allocator = Allocator;
+static GLOBAL_MIMALLOC: GlobalMiMalloc = GlobalMiMalloc;
 
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {

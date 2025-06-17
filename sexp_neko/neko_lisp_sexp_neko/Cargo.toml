@@ -11,3 +11,10 @@ crate-type = ["staticlib", "cdylib"]
 
 [dependencies]
 hashbrown = "0.14"
+mimalloc-rust = "0.2.1"
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
