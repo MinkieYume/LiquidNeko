@@ -1,12 +1,10 @@
-use alloc::{boxed::Box,string::String, vec::Vec,rc::Rc};
-use core::cell::RefCell;
+use alloc::{boxed::Box,vec::Vec,rc::Rc};
 use core::borrow::Borrow;
 use alloc::string::ToString;
 use hashbrown::HashMap;
 use crate::types::Symbol;
 use crate::types::NekoType;
 use crate::types::Function;
-use crate::types::NekoValue;
 use crate::types::NekoValue::*;
 use crate::env::Env;
 use crate::reader::*;
@@ -21,34 +19,34 @@ impl Core {
     pub fn default() -> Core {
         let mut binds:HashMap<Symbol, NekoType> = HashMap::new();
         let add =
-            Function::new_box(Rc::new(Box::new(|v,e| add_v(v))),"ADD",false);
+            Function::new_box(Rc::new(Box::new(|v,_e| add_v(v))),"ADD",false);
         binds.insert(Symbol("+".to_string()),NekoType::func(add));
         let sub =
-            Function::new_box(Rc::new(Box::new(|v,e| sub_v(v))),"SUB",false);
+            Function::new_box(Rc::new(Box::new(|v,_e| sub_v(v))),"SUB",false);
         binds.insert(Symbol("-".to_string()),NekoType::func(sub));
         let mul =
-            Function::new_box(Rc::new(Box::new(|v,e| mul_v(v))),"MUL",false);
+            Function::new_box(Rc::new(Box::new(|v,_e| mul_v(v))),"MUL",false);
         binds.insert(Symbol("*".to_string()),NekoType::func(mul));
         let div =
-            Function::new_box(Rc::new(Box::new(|v,e| div_v(v))),"DIV",false);
+            Function::new_box(Rc::new(Box::new(|v,_e| div_v(v))),"DIV",false);
         binds.insert(Symbol("/".to_string()),NekoType::func(div));
         let list =
-            Function::new_box(Rc::new(Box::new(|v,e| list(v))),"LIST",false);
+            Function::new_box(Rc::new(Box::new(|v,_e| list(v))),"LIST",false);
         binds.insert(Symbol("list".to_string()),NekoType::func(list));
         let listp =
-            Function::new_box(Rc::new(Box::new(|v,e| listp(v))),"LIST?",false);
+            Function::new_box(Rc::new(Box::new(|v,_e| listp(v))),"LIST?",false);
         binds.insert(Symbol("list?".to_string()),NekoType::func(listp));
         let emptyp =
-            Function::new_box(Rc::new(Box::new(|v,e| emptyp(v))),"EMPTY?",false);
+            Function::new_box(Rc::new(Box::new(|v,_e| emptyp(v))),"EMPTY?",false);
         binds.insert(Symbol("empty".to_string()),NekoType::func(emptyp));
         let count =
-            Function::new_box(Rc::new(Box::new(|v,e| count(v))),"COUNT",false);
+            Function::new_box(Rc::new(Box::new(|v,_e| count(v))),"COUNT",false);
         binds.insert(Symbol("count?".to_string()),NekoType::func(count));
         let cons =
-            Function::new_box(Rc::new(Box::new(|v,e| cons(v))),"CONS",false);
+            Function::new_box(Rc::new(Box::new(|v,_e| cons(v))),"CONS",false);
         binds.insert(Symbol("cons".to_string()),NekoType::func(cons));
         let concat =
-            Function::new_box(Rc::new(Box::new(|v,e| concat(v))),"CONCAT",false);
+            Function::new_box(Rc::new(Box::new(|v,_e| concat(v))),"CONCAT",false);
         binds.insert(Symbol("concat".to_string()),NekoType::func(concat));
         let read_string =
             Function::new_box(Rc::new(Box::new(|v,e| read_string(v,e))),"READSTRING",false);
@@ -157,7 +155,7 @@ fn div_v(mut v:Vec<NekoType>) -> NekoType {
     }
 }
 
-fn list(mut v:Vec<NekoType>) -> NekoType {
+fn list(v:Vec<NekoType>) -> NekoType {
     return NekoType::list(v);
 }
 
@@ -196,7 +194,7 @@ fn count(mut v:Vec<NekoType>) -> NekoType {
     }
 }
 
-fn read_string(mut v:Vec<NekoType>,env:Env) -> NekoType {
+fn read_string(v:Vec<NekoType>,env:Env) -> NekoType {
     let mut results:Vec<NekoType> = Vec::new();
     for arg in v {
         if let NekoString(s) = arg.get_ref().borrow() {
@@ -211,7 +209,7 @@ fn read_string(mut v:Vec<NekoType>,env:Env) -> NekoType {
     
 }
 
-fn def(mut args:Vec<NekoType>,env:Env) -> NekoType {
+fn def(args:Vec<NekoType>,env:Env) -> NekoType {
     if args.len()%2 == 0 {
         let mut last_arg = NekoType::nil();
         let mut result_args:Vec<NekoType> = Vec::new();
@@ -235,9 +233,10 @@ fn def(mut args:Vec<NekoType>,env:Env) -> NekoType {
     }
 }
 
+#[allow(dead_code)]
 fn defmarco(mut args:Vec<NekoType>,env:Env) -> NekoType {
     if args.len() >= 3 {
-        let mut name = args.remove(0);
+        let name = args.remove(0);
         if name.is_symbol() {
             let n_func = _lambda(args,env.clone(),true);
             let mut def_args:Vec<NekoType> = Vec::new();
@@ -251,13 +250,13 @@ fn defmarco(mut args:Vec<NekoType>,env:Env) -> NekoType {
     }
 }
 
-pub fn marco_expand(mut ast:Vec<NekoType>,env:Env) -> Vec<NekoType> {
+pub fn marco_expand(ast:Vec<NekoType>,env:Env) -> Vec<NekoType> {
     let mut v_ast = ast;
     loop {
         if is_marco_call(v_ast.clone(),env.clone()) {
             let ns = v_ast.remove(0);
-            if let NekoSymbol(symbol) = ns.get_ref().borrow() {
-                let marco = env.get(symbol);
+            if ns.is_symbol() {
+//                let marco = env.get(symbol);
                 if let NekoFn(f) = ns.get_ref().borrow() {
                     if f.is_marco() {
                         let n_ast = f.call(v_ast.clone(),env.clone());
@@ -273,7 +272,7 @@ pub fn marco_expand(mut ast:Vec<NekoType>,env:Env) -> Vec<NekoType> {
     }
 }
 
-pub fn is_marco_call(mut ast:Vec<NekoType>,env:Env) -> bool {
+pub fn is_marco_call(ast:Vec<NekoType>,env:Env) -> bool {
     let nil = NekoType::nil();
     let symb = ast.get(0).unwrap_or(&nil);
     if let NekoSymbol(symbol) = symb.get_ref().borrow() {
@@ -287,9 +286,10 @@ pub fn is_marco_call(mut ast:Vec<NekoType>,env:Env) -> bool {
     return false;
 }
 
+#[allow(dead_code)]
 fn defun(mut args:Vec<NekoType>,env:Env) -> NekoType {
     if args.len() >= 3 {
-        let mut name = args.remove(0);
+        let name = args.remove(0);
         if name.is_symbol() {
             let n_func = _lambda(args,env.clone(),false);
             let mut def_args:Vec<NekoType> = Vec::new();
@@ -304,13 +304,13 @@ fn defun(mut args:Vec<NekoType>,env:Env) -> NekoType {
 }
 
 fn let_(mut args:Vec<NekoType>,env:Env) -> NekoType {
-    let mut bindings = args.remove(0);
-    let mut n_env = Env::new(Some(env.clone()));
+    let bindings = args.remove(0);
+    let n_env = Env::new(Some(env.clone()));
     if let NekoList(bs) = bindings.copy_value() {
-        let mut r_env = let_set_bindings(bs,n_env.clone());
+        let r_env = let_set_bindings(bs,n_env.clone());
         if let Some(e) = r_env {
-            let mut n_env = e;
-            let mut list = NekoType::list(args);
+            let n_env = e;
+            let list = NekoType::list(args);
             env.set_tco(n_env.clone());
             return list;
         }
@@ -319,16 +319,16 @@ fn let_(mut args:Vec<NekoType>,env:Env) -> NekoType {
 }
 
 fn let_set_bindings(mut args:Vec<NekoType>,env:Env) -> Option<Env> {
-    let mut first_arg = args.remove(0);
+    let first_arg = args.remove(0);
     match first_arg.copy_value() {
-        NekoList(mut b) => {
+        NekoList(b) => {
             let mut n_env = env;
-            let mut oenv = let_set_bindings(b,n_env);
+            let oenv = let_set_bindings(b,n_env);
             if let Some(e) = oenv{
                 n_env = e;
                 for arg in args {
                     if let NekoList(ab) = arg.copy_value() {
-                        let mut n_oenv =
+                        let n_oenv =
                             let_set_bindings(ab,n_env);
                         if let Some(ne) = n_oenv {
                             n_env = ne
@@ -347,8 +347,8 @@ fn let_set_bindings(mut args:Vec<NekoType>,env:Env) -> Option<Env> {
             if args.len() != 1 {
                 return None;
             } else {
-                let mut secend_arg = args.remove(0);
-                let mut n = eval_ast(secend_arg,env.clone());
+                let secend_arg = args.remove(0);
+                let n = eval_ast(secend_arg,env.clone());
                 env.set(s,n);
                 return Some(env)
             }
@@ -357,14 +357,14 @@ fn let_set_bindings(mut args:Vec<NekoType>,env:Env) -> Option<Env> {
     }
 }
 
-fn if_(mut args:Vec<NekoType>,env:Env) -> NekoType {
+fn if_(args:Vec<NekoType>,env:Env) -> NekoType {
     if args.len() >= 2 && args.len() <= 3 {
-        let mut arg = args.get(0).
+        let arg = args.get(0).
             unwrap_or(&NekoType::nil()).clone();
         let condition = eval(arg.clone(),env.clone());
         if let NekoNil = *condition.get_ref() {
             if args.len() == 3 {
-                let mut arg3 = args.get(2).
+                let arg3 = args.get(2).
                     unwrap_or(&NekoType::nil()).clone();
                 env.set_tco(env.clone());
                 return arg3.clone();
@@ -372,7 +372,7 @@ fn if_(mut args:Vec<NekoType>,env:Env) -> NekoType {
                 NekoType::nil()
             }
         } else {
-            let mut arg2 = args.get(1).
+            let arg2 = args.get(1).
                 unwrap_or(&NekoType::nil()).clone();
             env.set_tco(env.clone());
             return arg2.clone();
@@ -383,11 +383,12 @@ fn if_(mut args:Vec<NekoType>,env:Env) -> NekoType {
 }
 
 fn progn(mut args:Vec<NekoType>,env:Env) -> NekoType {
+    #[allow(unused_assignments)]
     let mut result = NekoType::nil();
-    let mut arg = args.remove(0);
+    let arg = args.remove(0);
     result = eval(arg,env.clone());
     if args.len() > 0 {
-        let mut progn_fn = NekoType::symbol("progn".to_string());
+        let progn_fn = NekoType::symbol("progn".to_string());
         env.set_tco(env.clone());
         args.insert(0,progn_fn);
         return NekoType::list(args);
@@ -397,11 +398,11 @@ fn progn(mut args:Vec<NekoType>,env:Env) -> NekoType {
 }
 
 
-fn lambda(mut args:Vec<NekoType>,env:Env) -> NekoType {
+fn lambda(args:Vec<NekoType>,env:Env) -> NekoType {
     return _lambda(args,env.clone(),false);
 }
 
-fn _lambda(mut args:Vec<NekoType>,env:Env,marco:bool) -> NekoType {
+fn _lambda(args:Vec<NekoType>,_env:Env,marco:bool) -> NekoType {
     if let Some(s) = args.get(0){
         if let NekoList(_) = *s.get_ref() {
             
@@ -418,7 +419,7 @@ fn _lambda(mut args:Vec<NekoType>,env:Env,marco:bool) -> NekoType {
         prlist.push(NekoType::symbol("FUNCTION".to_string()));
     }    
     prlist.append(&mut args.clone());
-    let mut pralist = NekoType::list(prlist);
+    let pralist = NekoType::list(prlist);
     let mut f = Function::
     new_ast(args.clone(),pr_str(pralist.clone()).as_str(),false);
     if marco {
@@ -428,7 +429,7 @@ fn _lambda(mut args:Vec<NekoType>,env:Env,marco:bool) -> NekoType {
     return NekoType::func(f);
 }
 
-fn atom(mut args:Vec<NekoType>,env:Env) -> NekoType {
+fn atom(args:Vec<NekoType>,_env:Env) -> NekoType {
     if args.len() > 0{
         let mut results:Vec<NekoType> = Vec::new();
         for arg in args {
@@ -445,7 +446,7 @@ fn atom(mut args:Vec<NekoType>,env:Env) -> NekoType {
     
 }
 
-fn atomp(mut args:Vec<NekoType>,env:Env) -> NekoType {
+fn atomp(mut args:Vec<NekoType>,_env:Env) -> NekoType {
     if args.len() == 1 {
         let l = args.remove(0);
         if let NekoAtom(_) = *l.get_ref() {
@@ -458,13 +459,13 @@ fn atomp(mut args:Vec<NekoType>,env:Env) -> NekoType {
     }
 }
 
-fn deref(mut args:Vec<NekoType>,env:Env) -> NekoType {
+fn deref(args:Vec<NekoType>,_env:Env) -> NekoType {
     if args.len() > 0 {
         let mut results:Vec<NekoType> = Vec::new();
         for arg in args {
             //println!("{}",arg.get_type_str());
             if let NekoAtom(a) = arg.get_ref().borrow() {
-                let mut atom = a.borrow_mut();
+                let atom = a.borrow_mut();
                 let n = atom.get_neko();
                 results.push(n);
             } else {
@@ -481,7 +482,7 @@ fn deref(mut args:Vec<NekoType>,env:Env) -> NekoType {
     }
 }
 
-fn reset(mut args:Vec<NekoType>,env:Env) -> NekoType {
+fn reset(mut args:Vec<NekoType>,_env:Env) -> NekoType {
     if args.len() == 2 {
         let atom_n = args.remove(0);
         let neko = args.remove(0);
@@ -497,7 +498,7 @@ fn reset(mut args:Vec<NekoType>,env:Env) -> NekoType {
     }
 }
 
-fn quote(mut args:Vec<NekoType>,env:Env) -> NekoType {
+fn quote(mut args:Vec<NekoType>,_env:Env) -> NekoType {
     if args.len() == 1 {
         return args.remove(0)
     } else if args.len() > 1{
@@ -507,7 +508,7 @@ fn quote(mut args:Vec<NekoType>,env:Env) -> NekoType {
     }
 }
 
-fn quasiquote(mut args:Vec<NekoType>,env:Env) -> NekoType {
+fn quasiquote(args:Vec<NekoType>,env:Env) -> NekoType {
     if args.len() >= 1 {
         let mut results:Vec<NekoType> = Vec::new();
         for arg in args {
@@ -526,7 +527,7 @@ fn quasiquote(mut args:Vec<NekoType>,env:Env) -> NekoType {
     }
 }
 
-fn _quasiquote(mut ast:NekoType,env:Env) -> NekoType {
+fn _quasiquote(ast:NekoType,env:Env) -> NekoType {
     let mut result:Vec<NekoType> = Vec::new();
     if !ast.is_no_empty_list() {
         result.push(NekoType::symbol("quote".to_string()));
@@ -630,7 +631,7 @@ fn cons(mut args:Vec<NekoType>) -> NekoType {
 
 }
 
-fn concat(mut args:Vec<NekoType>) -> NekoType {
+fn concat(args:Vec<NekoType>) -> NekoType {
     if args.len() >= 2 {
         let mut result:Vec<NekoType> = Vec::new();
         for arg in args {

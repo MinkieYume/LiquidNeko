@@ -1,14 +1,11 @@
 use crate::symbols::SymbolRef;
-use crate::symbols::Symbols;
-use alloc::{boxed::Box,string::String, vec::Vec,rc::Rc};
+use alloc::rc::Rc;
 use core::cell::RefCell;
 use alloc::string::ToString;
 use hashbrown::HashMap;
-use core::fmt::Write;
 use crate::nekocore::Core;
 use crate::types::NekoType;
 use crate::types::Symbol;
-use crate::types::Function;
 
 #[derive(Clone)]
 pub struct EnvType {
@@ -36,8 +33,8 @@ impl Env {
         return self.0.borrow().symbols.clone();
     }
 
-    pub fn with_bindings(outer:Option<Env>,mut bindings:HashMap<Symbol, NekoType>) -> Env {
-        let mut env = Env(Rc::new(RefCell::new(EnvType {
+    pub fn with_bindings(outer:Option<Env>,bindings:HashMap<Symbol, NekoType>) -> Env {
+        let env = Env(Rc::new(RefCell::new(EnvType {
             outer: outer.clone().map(|e| e.clone()),
             symbols:outer.clone().map_or(SymbolRef::new(),
                                  |e| e.get_symbol()),
@@ -46,7 +43,7 @@ impl Env {
         })));
         let keys = bindings.keys();
         for bind in keys {
-            if let Some(mut val) = bindings.get(bind) {
+            if let Some(val) = bindings.get(bind) {
                 env.set(bind.clone(),val.clone());
             }
             

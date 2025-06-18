@@ -1,14 +1,11 @@
 use alloc::{vec::Vec, string::String, boxed::Box ,rc::Rc};
 use alloc::string::ToString;
-use core::ops::{Add,Sub,Mul,Div,Fn,Deref};
+use core::ops::{Add,Sub,Mul,Div,Fn};
 use core::cmp::{Eq,PartialEq};
-use core::mem::discriminant;
 use core::cell::RefCell;
 use core::borrow::Borrow;
 use NekoValue::*;
 use crate::env::Env;
-use crate::eval::*;
-use crate::printer::pr_str;
 
 #[derive(Clone)]
 pub enum NekoValue {
@@ -327,12 +324,12 @@ impl Function {
 
     fn call_ast(&self,mut args:Vec<NekoType>,env:Env) -> NekoType {
         //BUGFIX：环境输入不对
-        let mut unwrap = self.ast.as_ref().unwrap();
+        let unwrap = self.ast.as_ref().unwrap();
         let mut ast = unwrap.clone();
-        let mut n_env = Env::new(Some(env.clone()));
+        let n_env = Env::new(Some(env.clone()));
         //println!("{}",pr_str(NekoType::list(ast.clone())));
         //println!("{}",pr_str(NekoType::list(args.clone())));
-        let mut params = ast.remove(0);
+        let params = ast.remove(0);
         if let NekoList(v) = params.copy_value() {
             if v.len() != args.len() {
                 return NekoType::err("输入参数不对".to_string());
@@ -345,9 +342,9 @@ impl Function {
                 }
             }
         };
-        let mut progn = NekoType::symbol("progn".to_string());
+        let progn = NekoType::symbol("progn".to_string());
         ast.insert(0,progn);
-        let mut result = NekoType::list(ast);
+        let result = NekoType::list(ast);
         env.set_tco(n_env.clone());
 //        for body in ast {
 //            result = eval(body,n_env.clone());
@@ -357,7 +354,7 @@ impl Function {
     
     pub fn call(&self,v:Vec<NekoType>,e:Env) -> NekoType {
         if self.is_box() {
-            let mut l =
+            let l =
                 self.boxed.as_ref().unwrap();
             (*l)(v,e.clone())
         } else {

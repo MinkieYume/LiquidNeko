@@ -5,17 +5,10 @@ edition = "2024"
 
 [lib]
 name = "nekolisp"
-crate-type = ["staticlib"]
+#crate-type = ["staticlib"]
 path = "src/lib.rs"
 
 [features]
 
 [dependencies]
 hashbrown = "0.14"
-mimalloc-rust = "0.2.1"
-
-[profile.dev]
-panic = "abort"
-
-[profile.release]
-panic = "abort"

@@ -5,8 +5,6 @@ use alloc::string::ToString;
 use core::fmt::Write;
 use crate::env::Env;
 use crate::types::NekoType;
-use crate::types::NekoValue;
-use crate::types::NekoValue::*;
 
 pub struct Reader {
     tokens: Vec<String>,
@@ -97,6 +95,7 @@ pub fn read_str(s:&str,env:Env) -> NekoType {
     }
 }
 pub fn tokenize(s:&str,env:Env) -> Vec<String> {
+    #[allow(unused_assignments)]
     let mut last_tokens:Vec<String> = Vec::new();
     let mut tokens:Vec<String> = Vec::new();
     let mut token:String = String::new();
@@ -218,7 +217,7 @@ pub fn tokenize(s:&str,env:Env) -> Vec<String> {
      // 准备下一组匹配循环
     last_tokens = tokens.clone();
     tokens.clear();
-    last_char = ' ';
+//    last_char = ' ';
 
     // 循环3:区分单字符与宏字符组合
     for last_token in last_tokens {
@@ -362,7 +361,8 @@ fn try_parse(s:&str,env:Env) -> Option<NekoType>{
     None
 }
 
-fn parse_symbol(s: &str,env:Env) -> Option<String> {
+#[allow(dead_code)]
+fn parse_symbol(_s: &str,_env:Env) -> Option<String> {
     None
 }
 
@@ -405,10 +405,10 @@ fn parse_string(s: &str,env:Env) -> Option<String> {
     return None;
 }
 
-fn parse_float(s: &str,env:Env) -> Option<f64> {
+fn parse_float(s: &str,_env:Env) -> Option<f64> {
     s.parse::<f64>().ok()
 }
 
-fn parse_integer(s: &str,env:Env) -> Option<i64> {
+fn parse_integer(s: &str,_env:Env) -> Option<i64> {
     s.parse::<i64>().ok()
 }

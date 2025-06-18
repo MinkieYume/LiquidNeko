@@ -1,13 +1,13 @@
-use alloc::{vec::Vec, string::String, boxed::Box,rc::Rc};
+use alloc::{vec::Vec, string::String,rc::Rc};
 use alloc::vec;
 use alloc::string::ToString;
 use core::cell::RefCell;
 use hashbrown::HashMap;
 use SymbolTypes::*;
-use crate::{reader::Reader, types::NekoType,nekocore::*};
+use crate::types::NekoType;
 
 #[derive(Debug, Clone, PartialEq,Eq,Hash)]
-enum SymbolTypes {
+pub enum SymbolTypes {
     SymbolChar(char),
     SymbolStr(String),
     SymbolCharList(Vec<char>),
@@ -26,7 +26,7 @@ pub struct SymbolRef(Rc<RefCell<Symbols>>);
 
 impl SymbolRef {
     pub fn new() -> SymbolRef {
-        let mut symbolref = SymbolRef(Rc::new(RefCell::new(Symbols::new())));
+        let symbolref = SymbolRef(Rc::new(RefCell::new(Symbols::new())));
         symbolref.set("s_exp_begin",SymbolChar('('));
         symbolref.set("s_exp_end",SymbolChar(')'));
         symbolref.set("quote_symbol",SymbolChar('"'));
@@ -82,7 +82,7 @@ impl SymbolRef {
     }
 
     pub fn parse_str_reader_marco(&self,s:&str) -> Option<NekoType> {
-        let mut marcos = &self.0.borrow().reader_marcos;
+        let marcos = &self.0.borrow().reader_marcos;
         for marco in marcos.keys() {
             if s.len() > 1 {
                 if str_pair(s,marco.clone()){
@@ -103,7 +103,7 @@ impl SymbolRef {
     }
 
     pub fn parse_char_reader_marco(&self,c:char) -> Option<NekoType> {
-        let mut marcos = &self.0.borrow().reader_marcos;
+        let marcos = &self.0.borrow().reader_marcos;
         for marco in marcos.keys() {
             if char_pair(c,marco.clone()) {
                 let n = marcos.get(marco).unwrap().clone();

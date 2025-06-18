@@ -1,23 +1,19 @@
-use alloc::{vec::Vec, string::String, boxed::Box,collections::BTreeMap};
-use core::fmt::Write;
+use alloc::vec::Vec;
 use core::borrow::Borrow;
 use alloc::string::ToString;
 use crate::types::NekoType;
-use crate::types::NekoValue;
 use crate::types::NekoValue::*;
-use crate::types::Symbol;
-use crate::symbols::Symbols;
 use crate::env::Env;
 use crate::nekocore::marco_expand;
 
-pub fn eval_ast(mut n:NekoType,env:Env) -> NekoType {
+pub fn eval_ast(n:NekoType,env:Env) -> NekoType {
     //对单个参数进行求值
     match n.get_ref().borrow() {
         NekoSymbol(s) => {env.get(&s)},
         NekoList(v) => {
             let mut nv:Vec<NekoType> = Vec::new();
             for e in v {
-                let mut ne = eval(e.clone(),env.clone());
+                let ne = eval(e.clone(),env.clone());
                 nv.push(ne);
             }
             NekoType::list(nv)
@@ -26,8 +22,9 @@ pub fn eval_ast(mut n:NekoType,env:Env) -> NekoType {
     }
 }
 
-pub fn eval(mut n:NekoType,env:Env) -> NekoType {
+pub fn eval(n:NekoType,env:Env) -> NekoType {
     //对参数进行判定并决定是否执行或应用
+    #[allow(unused_assignments)]
     let mut result = NekoType::nil();
     let mut v_n = n.clone();
     let mut v_env = env.clone();
@@ -60,7 +57,7 @@ pub fn apply(list:NekoType,env:Env) -> NekoType {
     loop{
         if let NekoList(v) = v_list.get_ref().borrow() {
             let mut args:Vec<NekoType> = v.clone();
-            let mut first_arg = args.remove(0);
+            let first_arg = args.remove(0);
             match first_arg.get_ref().borrow() {
                 NekoFn(f) => {
                     if !f.is_special(){
@@ -70,7 +67,7 @@ pub fn apply(list:NekoType,env:Env) -> NekoType {
                     }
                 },
                 NekoSymbol(_) => {
-                    let mut nfn
+                    let nfn
                         = eval_ast(first_arg.clone(),env.clone());
                     if let NekoFn(f) = nfn.copy_value() {
                         if f.is_special() {

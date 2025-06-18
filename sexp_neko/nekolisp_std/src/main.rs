@@ -1,5 +1,8 @@
+use std::*;
+use std::io::Write;
+use nekolisp::*;
+
 fn main() {
-    let mut env = Env::default();
     loop {
 	let mut input = String::new();
 	print!(">>> ");
@@ -9,13 +12,9 @@ fn main() {
             println!("\nByeNyan");
             break;
         }
-        let mut strs = reader::pre_read_str(&input,env.clone());
-        let mut results:Vec<String> = Vec::new();
-        //println!("{:?}",&strs);
-        for st in strs {
-            let s = rep(st.as_str(),env.clone());
-            results.push(st);
-            println!("{}",&s);
+        let mut resutls = rep_str(&mut input);
+        for result in resutls {
+            println!("{}",result)
         }
 	io::stdout().flush().unwrap();
     }

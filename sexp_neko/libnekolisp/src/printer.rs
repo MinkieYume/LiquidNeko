@@ -1,9 +1,8 @@
-use alloc::{vec::Vec, string::String, boxed::Box};
+use alloc::{vec::Vec, string::String};
 use core::fmt::Write;
 use core::borrow::Borrow;
 use alloc::string::ToString;
 use crate::types::NekoType;
-use crate::types::NekoValue;
 use crate::types::NekoValue::*;
 
 pub fn pr_str(neko:NekoType) -> String {
@@ -20,16 +19,37 @@ pub fn pr_str(neko:NekoType) -> String {
         NekoAtom(a) => {
             let atom = a.borrow_mut();
             let neko = atom.get_neko();
-            write!(&mut output,"ATOM({})", pr_str(neko));
+            let result = write!(&mut output,"ATOM({})", pr_str(neko));
+            match result {
+                Ok(_) => {},
+                Err(e) => {output = e.to_string()}
+            };
         },
-        NekoErr(e) => {write!(&mut output,"Error: {}", e.clone());},
-        NekoFn(f) => {write!(&mut output,"#<{}>", f.print());}
+        NekoErr(e) => {
+            let result = write!(&mut output,"Error: {}", e.clone());
+            match result {
+                Ok(_) => {},
+                Err(e) => {output = e.to_string()}
+            }
+        },
+        NekoFn(f) => {
+            let result = write!(&mut output,"#<{}>", f.print());
+            match result {
+                Ok(_) => {},
+                Err(e) => {output = e.to_string()}
+            }
+        }
         NekoList(v) => {
             let mut sv:Vec<String> = Vec::new();
             for n in v {
                 sv.push(pr_str(n.clone()));
             }
-            write!(&mut output,"({})", sv.join(" "));
+            let result = write!(&mut output,"({})", sv.join(" "));
+            match result {
+                Ok(_) => {},
+                Err(e) => {output = e.to_string()}
+            }
+            
         },
         _ => {output = "未实现".to_string();}
     }
