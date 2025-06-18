@@ -1,8 +1,10 @@
 use std::*;
 use std::io::Write;
+use nekolisp::env::Env;
 use nekolisp::*;
 
 fn main() {
+    let env = Env::default();
     loop {
 	let mut input = String::new();
 	print!(">>> ");
@@ -12,7 +14,7 @@ fn main() {
             println!("\nByeNyan");
             break;
         }
-        let mut resutls = rep_str(&mut input);
+        let resutls = rep_str(&mut input,env.clone());
         for result in resutls {
             println!("{}",result)
         }

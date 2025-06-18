@@ -12,8 +12,7 @@ use alloc::vec::Vec;
 use alloc::string::String;
 use crate::env::Env;
 
-pub fn rep_str(s:&str) -> Vec<String> {
-    let env = Env::default();
+pub fn rep_str(s:&str,env:Env) -> Vec<String> {
     let strs = reader::pre_read_str(&s,env.clone());
     let mut results:Vec<String> = Vec::new();
     //println!("{:?}",&strs);
