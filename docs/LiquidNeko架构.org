@@ -2,11 +2,11 @@
 
 * 架构图
 #+BEGIN_SRC plantuml :file liquidneko_strcut.png
-(Launcher Neko) -> (Sexp Neko):运行
-(Sexp Neko) --> (Neko1)
-(Sexp Neko) --> (Neko2)
-(Neko1) --> (Compositor Neko):发出通信
-(Neko2) <-- (Compositor Neko):接收通信
+(Neko程序1) <-> (Sexp Neko1)
+(Sexp Neko1) <->  (Neko Sexp)
+(Neko Sexp) <-> (Sexp Neko2)
+(Sexp Neko2) <-> (Neko程序2)
+(Neko Sexp) --> (NekoScript) : 执行
 #+END_SRC
 
 #+RESULTS:
@@ -23,31 +23,29 @@ Neko是NekoLisp中的最小单元，每个Neko都通过一个或多个SexpNeko�
 *** 结构
 一个Neko，至少应当拥有下面的实现：
 1. 传递S表达式的统一通信接口。
-2. 存储S表达式的字典。
-3. 对其它Neko的依赖的声明。
+2. 存储S表达式的数组。
+3. 实现或接入一个符合NekoLisp语法标准的S表达式解释器。
+4. 对其它Neko的依赖的声明。
+*** 原理
+通过要求每个程序来实现一个NekoLisp解释器，可以很快捷地让这个程序解析并接入NekoLisp的语法，这样以来每个程序只需要实现一个面向NekoLisp的扩展，就能互通配置，并都能在这之上运行NekoLisp的程序。
+通过这点，Liquid Neko的协议的基础得以确定，所有LiquidNeko程序可以看做是一个Neko。
+此外，每个Liquid Neko脚本，也可以看作是一个Neko，因为LiquidNeko的脚本，也符合Neko实现的特征。
 
-** 启动猫（Launcher Neko）
+** 脚本猫(NekoScript)
 *** 定义
-启动器是负责引导整个 LiquidNeko 系统运行的入口 Neko。
-它是系统中第一个被激活的Neko，负责初始化环境、加载调度器、注册模块或进入运行态。
+NekoScript是一种特殊的Neko，它本身也可以作为S表达式的一部分，被其它Neko程序统一运行。
+但是，NekoScript必须依赖SexpNeko运行，虽然默认不需要声明对SexpNeko的依赖，但调用各种库和不同程序实现时，依然需要在NekoLisp脚本里声明对其它Neko实现的依赖。
 
-启动器本身并不限定形式或层级，它可以是：
-- 一个 Linux 用户空间程序；
-- 一个桌面环境中的自动启动模块；
-- 一个嵌入式设备的初始化脚本；
-- 甚至是操作系统内核或 BIOS 的入口点。
+*** 文件
+NekoScript一般是命名为.neko的文件，一个NekoScript也可以看做是一个依赖于SexpNeko的Neko程序。
 
-启动猫可以提供一组 `(platform-capability ...)` 宏或结构，用于向解释猫声明当前支持的系统能力（如 :io, :clock, :fs）。
-
-*** 功能
-- 负责作为总入口启动。
-- 可以嵌套多个启动猫继承启动环境。
-- 为解释猫提供基础的宏和函数实现，包括平台IO、平台输入、时间基准、底层内存调用、底层硬编码结构
-- 为解释猫提供当前操作系统或运行环境支持的其它宏或函数实现。
+*** 原理
+所有LiquidNeko程序，都通过S表达式互通，且特定S表达式的方法通过各自的方式实现。
+而NekoScript，则作为实现互通的桥梁，方便各个程序内部调用一套统一的脚本，来实现程序之间各个工作流的统一。
 
 ** 解释猫（Sexp Neko）
 *** 定义
-解释猫是负责解释并执行NekoLisp脚本的猫，是整个LiquidNeko系统的核心骨架和通用语言。
+解释猫是负责解释并执行NekoLisp脚本的猫，通常承担执行和转换NekoLisp脚本的功能。
 解释猫通常作为一个rust模块或库存在，供启动猫启动时调用和加载，最终再基于解释猫的解释功能运行各种neko lisp脚本。
 
 一个解释猫承载的主要功能包括：

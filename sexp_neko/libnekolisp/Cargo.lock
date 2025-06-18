@@ -52,6 +52,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "libnekolisp"
+version = "0.1.0"
+dependencies = [
+ "hashbrown",
+ "mimalloc-rust",
+]
+
+[[package]]
 name = "mimalloc-rust"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -69,14 +77,6 @@ checksum = "6413e13241a9809f291568133eca6694572cf528c1a6175502d090adce5dd5db"
 dependencies = [
  "cc",
  "cty",
-]
-
-[[package]]
-name = "neko_lisp_sexp_neko"
-version = "0.1.0"
-dependencies = [
- "hashbrown",
- "mimalloc-rust",
 ]
 
 [[package]]

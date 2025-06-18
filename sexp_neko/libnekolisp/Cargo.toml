@@ -1,11 +1,12 @@
 [package]
-name = "neko_lisp_sexp_neko"
+name = "libnekolisp"
 version = "0.1.0"
 edition = "2024"
 
 [lib]
-name = "neko_lisp_sexp_neko"
-crate-type = ["staticlib", "cdylib"]
+name = "nekolisp"
+crate-type = ["staticlib"]
+path = "src/lib.rs"
 
 [features]
 
