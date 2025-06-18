@@ -11,6 +11,32 @@ use crate::reader::*;
 use crate::eval::*;
 use crate::printer::*;
 
+const ADD: &str = "+";
+const SUB: &str = "-";
+const MUL: &str = "*";
+const DIV: &str = "/";
+const LIST: &str = "list";
+const LISTP: &str = "list?";
+const EMPTYP: &str = "empty?";
+const COUNT: &str = "count";
+const CONS: &str = "cons";
+const CONCAT: &str = "concat";
+const READSTRING: &str = "read-string";
+const ATOM: &str = "atom";
+const ATOMP: &str = "atom?";
+const DEREF: &str = "deref";
+const RESET: &str = "reset";
+const SWAP: &str = "swap";
+const DEF: &str = "def";
+const LET: &str = "let";
+const IF: &str = "if";
+const PROGN: &str = "progn";
+const QUOTE: &str = "quote";
+const QUASIQUOTE: &str = "quasiquote";
+const LAMBDA: &str = "lambda";
+const DEFMARCO: &str = "defmarco";
+const MARCOEXPAND: &str = "marcoexpand";
+
 pub struct Core {
     pub binddings:HashMap<Symbol, NekoType>
 }
@@ -20,87 +46,97 @@ impl Core {
         let mut binds:HashMap<Symbol, NekoType> = HashMap::new();
         let add =
             Function::new_box(Rc::new(Box::new(|v,_e| add_v(v))),"ADD",false);
-        binds.insert(Symbol("+".to_string()),NekoType::func(add));
+        binds.insert(Symbol(ADD.to_string()),NekoType::func(add));
         let sub =
             Function::new_box(Rc::new(Box::new(|v,_e| sub_v(v))),"SUB",false);
-        binds.insert(Symbol("-".to_string()),NekoType::func(sub));
+        binds.insert(Symbol(SUB.to_string()),NekoType::func(sub));
         let mul =
             Function::new_box(Rc::new(Box::new(|v,_e| mul_v(v))),"MUL",false);
-        binds.insert(Symbol("*".to_string()),NekoType::func(mul));
+        binds.insert(Symbol(MUL.to_string()),NekoType::func(mul));
         let div =
             Function::new_box(Rc::new(Box::new(|v,_e| div_v(v))),"DIV",false);
-        binds.insert(Symbol("/".to_string()),NekoType::func(div));
+        binds.insert(Symbol(DIV.to_string()),NekoType::func(div));
         let list =
             Function::new_box(Rc::new(Box::new(|v,_e| list(v))),"LIST",false);
-        binds.insert(Symbol("list".to_string()),NekoType::func(list));
+        binds.insert(Symbol(LIST.to_string()),NekoType::func(list));
         let listp =
             Function::new_box(Rc::new(Box::new(|v,_e| listp(v))),"LIST?",false);
-        binds.insert(Symbol("list?".to_string()),NekoType::func(listp));
+        binds.insert(Symbol(LISTP.to_string()),NekoType::func(listp));
         let emptyp =
             Function::new_box(Rc::new(Box::new(|v,_e| emptyp(v))),"EMPTY?",false);
-        binds.insert(Symbol("empty".to_string()),NekoType::func(emptyp));
+        binds.insert(Symbol(EMPTYP.to_string()),NekoType::func(emptyp));
         let count =
             Function::new_box(Rc::new(Box::new(|v,_e| count(v))),"COUNT",false);
-        binds.insert(Symbol("count?".to_string()),NekoType::func(count));
+        binds.insert(Symbol(COUNT.to_string()),NekoType::func(count));
         let cons =
             Function::new_box(Rc::new(Box::new(|v,_e| cons(v))),"CONS",false);
-        binds.insert(Symbol("cons".to_string()),NekoType::func(cons));
+        binds.insert(Symbol(CONS.to_string()),NekoType::func(cons));
         let concat =
             Function::new_box(Rc::new(Box::new(|v,_e| concat(v))),"CONCAT",false);
-        binds.insert(Symbol("concat".to_string()),NekoType::func(concat));
+        binds.insert(Symbol(CONCAT.to_string()),NekoType::func(concat));
         let read_string =
             Function::new_box(Rc::new(Box::new(|v,e| read_string(v,e))),"READSTRING",false);
-        binds.insert(Symbol("read-string".to_string()),NekoType::func(read_string));
+        binds.insert(Symbol(READSTRING.to_string()),NekoType::func(read_string));
         let atom =
             Function::new_box(Rc::new(Box::new(|v,e| atom(v,e))),"ATOM",false);
-        binds.insert(Symbol("atom".to_string()),NekoType::func(atom));
+        binds.insert(Symbol(ATOM.to_string()),NekoType::func(atom));
         let atomp =
             Function::new_box(Rc::new(Box::new(|v,e| atomp(v,e))),"ATOM?",false);
-        binds.insert(Symbol("atom?".to_string()),NekoType::func(atomp));
+        binds.insert(Symbol(ATOMP.to_string()),NekoType::func(atomp));
         let deref =
             Function::new_box(Rc::new(Box::new(|v,e| deref(v,e))),"DEREF",false);
-        binds.insert(Symbol("deref".to_string()),NekoType::func(deref));
+        binds.insert(Symbol(DEREF.to_string()),NekoType::func(deref));
         let reset =
             Function::new_box(Rc::new(Box::new(|v,e| reset(v,e))),"RESET",false);
-        binds.insert(Symbol("reset".to_string()),NekoType::func(reset));
+        binds.insert(Symbol(RESET.to_string()),NekoType::func(reset));
         let swap =
             Function::new_box(Rc::new(Box::new(|v,e| swap(v,e))),"SWAP",false);
-        binds.insert(Symbol("swap".to_string()),NekoType::func(swap));
+        binds.insert(Symbol(SWAP.to_string()),NekoType::func(swap));
         let def =
             Function::new_box(Rc::new(
                 Box::new(|v,e| def(v,e))),"DEF",true);
-        binds.insert(Symbol("def".to_string()),
+        binds.insert(Symbol(DEF.to_string()),
                      NekoType::func(def));
         let let_ =
             Function::new_box(Rc::new(
                 Box::new(|v,e| let_(v,e))),"LET",true);
-        binds.insert(Symbol("let".to_string()),
+        binds.insert(Symbol(LET.to_string()),
                      NekoType::func(let_));
         let if_ =
             Function::new_box(Rc::new(
                 Box::new(|v,e| if_(v,e))),"IF",true);
-        binds.insert(Symbol("if".to_string()),
+        binds.insert(Symbol(IF.to_string()),
                      NekoType::func(if_));
         let progn =
             Function::new_box(Rc::new(
                 Box::new(|v,e| progn(v,e))),"PROGN",true);
-        binds.insert(Symbol("progn".to_string()),
+        binds.insert(Symbol(PROGN.to_string()),
                      NekoType::func(progn));
         let quote =
             Function::new_box(Rc::new(
                 Box::new(|v,e| quote(v,e))),"QUOTE",true);
-        binds.insert(Symbol("quote".to_string()),
+        binds.insert(Symbol(QUOTE.to_string()),
                      NekoType::func(quote));
         let quasiquote =
             Function::new_box(Rc::new(
                 Box::new(|v,e| quasiquote(v,e))),"QUASIQUOTE",true);
-        binds.insert(Symbol("quasiquote".to_string()),
+        binds.insert(Symbol(QUASIQUOTE.to_string()),
                      NekoType::func(quasiquote));
         let lambda =
             Function::new_box(Rc::new(
                 Box::new(|v,e| lambda(v,e))),"LAMBDA",true);
-        binds.insert(Symbol("lambda".to_string()),
+        binds.insert(Symbol(LAMBDA.to_string()),
                      NekoType::func(lambda));
+        let defmarco =
+            Function::new_box(Rc::new(
+                Box::new(|v,e| defmarco(v,e))),"DEFMARCO",true);
+        binds.insert(Symbol(DEFMARCO.to_string()),
+                     NekoType::func(defmarco));
+        let marcoexpand =
+            Function::new_box(Rc::new(
+                Box::new(|v,e| marcoexpand(v,e))),"MARCO_EXPAND",true);
+        binds.insert(Symbol(MARCOEXPAND.to_string()),
+                     NekoType::func(marcoexpand));
         Core{
             binddings:binds,
         }
@@ -233,7 +269,6 @@ fn def(args:Vec<NekoType>,env:Env) -> NekoType {
     }
 }
 
-#[allow(dead_code)]
 fn defmarco(mut args:Vec<NekoType>,env:Env) -> NekoType {
     if args.len() >= 3 {
         let name = args.remove(0);
@@ -248,6 +283,24 @@ fn defmarco(mut args:Vec<NekoType>,env:Env) -> NekoType {
     } else {
         return NekoType::err("一个完整的宏应至少包含名称、参数和代码".to_string());
     }
+}
+
+pub fn marcoexpand(args:Vec<NekoType>,env:Env) -> NekoType {
+    let mut results:Vec<NekoType> = Vec::new();
+    if args.len() >= 1 {
+        for arg in args {
+            if let NekoList(ast) = arg.copy_value() {
+                let marco = marco_expand(ast,env.clone());
+                results.push(NekoType::list(marco));
+            }
+        }
+        if results.len() >= 1 {
+            return NekoType::list(results);
+        } else if results.len() == 1 {
+            return results.remove(0);
+        }
+    }
+    return NekoType::err("参数不能为空".to_string());
 }
 
 pub fn marco_expand(ast:Vec<NekoType>,env:Env) -> Vec<NekoType> {
