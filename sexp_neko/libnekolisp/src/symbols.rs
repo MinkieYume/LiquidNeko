@@ -35,12 +35,13 @@ impl SymbolRef {
         symbolref.set("comment_end",SymbolChar('\n'));
         symbolref.set("keyword",SymbolChar(':'));
         symbolref.set("split",SymbolCharList(vec![' ',',','\n']));
-        symbolref.set("special",SymbolSpecialChars);
+        symbolref.set("function_identifier",SymbolChar('&'));
+        symbolref.set("special",SymbolSpecialChars);        
         symbolref.set_reader_marco(SymbolChar('@'),NekoType::symbol("deref".to_string()));
         symbolref.set_reader_marco(SymbolChar('\''),NekoType::symbol("quote".to_string()));
         symbolref.set_reader_marco(SymbolChar('`'),NekoType::symbol("quasiquote".to_string()));
         symbolref.set_reader_marco(SymbolChar('~'),NekoType::symbol("unquote".to_string()));
-        symbolref.set_reader_marco(SymbolStr("~@".to_string()),NekoType::symbol("spliceu-nquote".to_string()));
+        symbolref.set_reader_marco(SymbolStr("~@".to_string()),NekoType::symbol("spliceu-nquote".to_string()));        
         return symbolref;   
     }
 

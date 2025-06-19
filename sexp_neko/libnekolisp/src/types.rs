@@ -6,6 +6,7 @@ use core::cell::RefCell;
 use core::borrow::Borrow;
 use NekoValue::*;
 use crate::env::Env;
+use crate::nekocore;
 
 #[derive(Clone)]
 pub enum NekoValue {
@@ -251,6 +252,16 @@ impl Symbol {
     pub fn val(&self) -> String {
         self.0.clone()
     }
+    
+    pub fn is_fuction_identifier(&self,env:Env) -> bool {
+        let symbol = env.get_symbol();
+        let mut symbol_chars = self.0.chars();
+        let first = symbol_chars.next();
+        if let Some(c) = first {
+            return symbol.pair_char(c,"function_identifier");
+        }
+        return false;
+    }
 }
 
 impl Function {
@@ -323,7 +334,8 @@ impl Function {
     }
 
     fn call_ast(&self,mut args:Vec<NekoType>,env:Env) -> NekoType {
-        //BUGFIX：环境输入不对
+        //调用ast类型的函数时会运行的方法
+        //ast类型函数代表的是由NekoLisp脚本声明和自定义的函数。
         let unwrap = self.ast.as_ref().unwrap();
         let mut ast = unwrap.clone();
         let n_env = Env::new(Some(env.clone()));
@@ -331,18 +343,66 @@ impl Function {
         //println!("{}",pr_str(NekoType::list(args.clone())));
         let params = ast.remove(0);
         if let NekoList(v) = params.copy_value() {
-            if v.len() != args.len() {
-                return NekoType::err("输入参数不对".to_string());
-            }
-            for p in v {
+            let mut cfid = "".to_string();
+            for p in v { //循环：遍历所有形参                
                 if let NekoSymbol(s) = p.copy_value() {
-                    //println!("{}",pr_str(p.clone()));
-                    let val = args.remove(0);
-                    n_env.set(s.clone(),val);
+                    if s.is_fuction_identifier(n_env.clone()) {
+                        //读取函数标识符
+                        cfid = s.val();
+                        continue;
+                    }
+                }
+                
+                match cfid.as_str() {
+                    "&rest" => { //可变参数的处理
+                        if let NekoSymbol(s) = p.copy_value() {
+                            let val = NekoType::list(args);
+                            n_env.set(s.clone(),val);
+                            break;
+                        }
+                    },
+                    "&optional" => { //可选参数的处理
+                        if !args.is_empty() {
+                            let mut ns = p.copy_value();
+                            if let NekoList(mut l) = p.copy_value() {
+                                if l.len() == 2 {
+                                    let n = l.remove(0);
+                                    ns = n.copy_value();
+                                }
+                            }
+                            if let NekoSymbol(s) = ns {
+                                let val = args.remove(0);
+                                n_env.set(s.clone(),val);
+                            }
+                        } else {
+                            if let NekoList(mut l) = p.copy_value() {
+                                if l.len() == 2 {
+                                    let n = l.remove(0);
+                                    if let NekoSymbol(s) = n.copy_value() {
+                                        let val = l.remove(0);
+                                        n_env.set(s.clone(),val);
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "&key" => {
+                        
+                    },
+                    _ => {
+                        if args.is_empty() { //循环内参数为空报错
+                            return NekoType::err("函数接收的参数量不足".to_string());
+                        }
+                        if let NekoSymbol(s) = p.copy_value() {
+                            let val = args.remove(0);
+                            n_env.set(s.clone(),val);
+                        }
+                    }
                 }
             }
         };
-        let progn = NekoType::symbol("progn".to_string());
+        let progn = NekoType::symbol(
+            nekocore::PROGN.to_string());        
         ast.insert(0,progn);
         let result = NekoType::list(ast);
         env.set_tco(n_env.clone());
